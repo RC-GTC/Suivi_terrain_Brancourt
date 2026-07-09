@@ -1,0 +1,1201 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Suivi Terrain — KPI GTC</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bl:#3B82C4;--bld:#2563A8;--bll:#EBF3FC;
+  --dk:#1A2535;--dk2:#1E2E42;--dk3:#162236;
+  --g1:#3A4D63;--g2:#6B829A;--g3:#96A8BC;--g4:#C8D5E2;
+  --bg:#F0F4F8;--w:#FFFFFF;
+  --bd:#D6E2EE;--bd2:#BCCFDF;
+  --grn:#1A7A4A;--grnl:#E6F4EE;
+  --amb:#B86F0A;--ambl:#FEF3E2;
+  --red:#C0392B;--redl:#FDECEA;
+  --r:8px;--rs:5px;
+  --tb-h:52px;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--dk);font-size:13px;line-height:1.5;min-height:100vh}
+/* TOPBAR */
+.tb{background:var(--dk3);height:var(--tb-h);display:flex;align-items:center;padding:0 20px;gap:10px;position:sticky;top:0;z-index:300;border-bottom:2px solid var(--bl)}
+.logo{font-family:'JetBrains Mono',monospace;font-size:11px;font-weight:500;color:#7EC8F0;background:rgba(59,130,196,.18);border:1px solid rgba(59,130,196,.3);padding:3px 9px;border-radius:4px;letter-spacing:1px;white-space:nowrap}
+.tb-t{font-size:13px;font-weight:600;color:#fff}
+.tb-s{font-size:10px;color:var(--g3)}
+.tb-r{display:flex;align-items:center;gap:6px;margin-left:auto;flex-wrap:nowrap}
+.btn{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;border:none;border-radius:var(--rs);padding:5px 11px;cursor:pointer;transition:background .15s;white-space:nowrap}
+.btn-bl{background:var(--bl);color:#fff}.btn-bl:hover{background:var(--bld)}
+.btn-wh{background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.15)}.btn-wh:hover{background:rgba(255,255,255,.2)}
+.btn-gr{background:var(--bg);color:var(--g1);border:1px solid var(--bd2)}.btn-gr:hover{background:var(--bd)}
+.btn-red{background:var(--redl);color:var(--red);border:1px solid #EEC0B8}
+.btn-slides{background:rgba(66,133,244,.2);color:#7EB3F5;border:1px solid rgba(66,133,244,.4)}.btn-slides:hover{background:rgba(66,133,244,.35)}
+.sp{font-size:11px;padding:3px 9px;border-radius:20px;transition:opacity .3s;opacity:0}
+.sp.ok{background:var(--grnl);color:var(--grn);opacity:1}
+/* LAYOUT */
+.page{max-width:1440px;margin:0 auto;padding:18px 20px 80px}
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:2px solid var(--bd);margin-bottom:18px}
+.tab{padding:8px 18px;font-size:12px;font-weight:500;color:var(--g2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;transition:color .15s}
+.tab.on{color:var(--bl);border-bottom-color:var(--bl)}
+.pane{display:none}.pane.on{display:block}
+/* DASHBOARD */
+.dash{background:var(--dk2);border-radius:var(--r);padding:14px 20px;margin-bottom:16px;display:flex;gap:18px;flex-wrap:wrap;align-items:center}
+.dn{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:500;color:#7EC8F0;line-height:1}
+.dl{font-size:10px;color:var(--g3);text-transform:uppercase;letter-spacing:.7px;margin-top:2px}
+.dsep{width:1px;height:52px;background:rgba(255,255,255,.08);flex-shrink:0}
+.dbars{flex:1;min-width:160px;display:flex;flex-direction:column;gap:5px}
+.dbr{display:flex;align-items:center;gap:8px}
+.dbl{font-size:10px;color:var(--g3);width:110px;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dbt{flex:1;height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.dbf{height:100%;border-radius:2px;transition:width .5s}
+.dbp{font-size:10px;font-family:'JetBrains Mono',monospace;color:#fff;width:28px;text-align:right}
+/* FORMULAIRE */
+.form-card{background:var(--w);border:1px solid var(--bd);border-radius:var(--r);margin-bottom:14px;overflow:hidden}
+.form-hdr{background:var(--dk2);padding:11px 18px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none}
+.form-hdr h3{font-size:12px;font-weight:600;color:#fff;flex:1}
+.form-hdr span{font-size:11px;color:var(--g3)}
+.form-body{padding:14px 18px;display:none}
+.form-body.open{display:block}
+.fg{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:9px;margin-bottom:11px}
+.fg2{grid-column:1/-1}
+.fl{font-size:10px;font-weight:600;color:var(--g2);margin-bottom:3px;text-transform:uppercase;letter-spacing:.4px}
+.fi{width:100%;font-family:'Inter',sans-serif;font-size:12px;color:var(--dk);border:1px solid var(--bd);border-radius:var(--rs);padding:6px 9px;background:#fff;transition:border-color .15s}
+.fi:focus{outline:none;border-color:var(--bl)}
+.fi::placeholder{color:var(--g4)}
+textarea.fi{resize:vertical;min-height:48px;line-height:1.5}
+.form-btns{display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--bd);margin-top:4px}
+/* WRAP TABLEAU */
+.tbl-card{background:var(--w);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden}
+.tbl-top{padding:10px 16px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.tbl-top h2{font-size:12px;font-weight:600;color:var(--dk)}
+/* FILTRES */
+.filters{display:flex;gap:7px;flex-wrap:wrap;padding:8px 16px;background:var(--bg);border-bottom:1px solid var(--bd)}
+.fsel{font-family:'Inter',sans-serif;font-size:11px;color:var(--dk);border:1px solid var(--bd);border-radius:var(--rs);padding:4px 8px;background:#fff;cursor:pointer;outline:none}
+.fsel:focus{border-color:var(--bl)}
+.fcnt{font-size:11px;color:var(--g3);align-self:center;margin-left:auto}
+/* TABLEAU SCROLL avec entêtes sticky */
+.tbl-scroll{overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 310px)}
+table{width:100%;border-collapse:collapse;min-width:1100px}
+thead th{
+  padding:8px 9px;text-align:left;font-size:10px;font-weight:600;
+  color:var(--g3);text-transform:uppercase;letter-spacing:.4px;
+  white-space:nowrap;border-right:1px solid rgba(255,255,255,.06);
+  background:var(--dk2);
+  position:sticky;top:0;z-index:10;
+}
+thead th:last-child{border-right:none}
+tbody tr{border-bottom:1px solid var(--bd);transition:background .1s}
+tbody tr:hover{background:#F7FAFE}
+tbody tr.tr-done{background:#F0FAF4}
+tbody td{padding:7px 9px;font-size:11px;color:var(--dk);vertical-align:middle;border-right:1px solid var(--bd)}
+tbody td:last-child{border-right:none}
+.td-date{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--g3);white-space:nowrap}
+.td-action{max-width:200px;line-height:1.4}
+.td-res{max-width:160px;font-size:10px;color:var(--g2);line-height:1.4}
+/* BADGES */
+.badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 7px;border-radius:3px;white-space:nowrap}
+.b-mk{background:var(--bll);color:var(--bld)}
+.b-me{background:#EEF2FF;color:#3730A3}
+.p1{background:#FEE2E2;color:#991B1B}
+.p2{background:#FEF3C7;color:#92400E}
+.p3{background:#DCFCE7;color:#166534}
+/* SELECT AVANCEMENT */
+.avsel{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;border:1px solid var(--bd2);border-radius:4px;padding:3px 5px;cursor:pointer;outline:none;min-width:118px}
+.av-todo{background:#F1F5F9;color:#475569}
+.av-prog{background:var(--ambl);color:var(--amb)}
+.av-done{background:var(--grnl);color:var(--grn)}
+.av-bloc{background:var(--redl);color:var(--red)}
+/* VALID BTN */
+.vbtn{font-size:10px;font-weight:600;padding:3px 8px;border-radius:4px;border:none;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap}
+.v-yes{background:var(--grnl);color:var(--grn)}
+.v-no{background:var(--redl);color:var(--red)}
+.delbtn{font-size:11px;color:var(--g3);background:none;border:none;cursor:pointer;padding:2px 5px;border-radius:3px}
+.delbtn:hover{color:var(--red);background:var(--redl)}
+/* MODAL */
+.mbl{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:500;display:none;align-items:center;justify-content:center}
+.mbl.open{display:flex}
+.md{background:#fff;border-radius:var(--r);padding:22px;width:380px;max-width:92vw;box-shadow:0 8px 32px rgba(0,0,0,.18)}
+.md h3{font-size:14px;font-weight:600;margin-bottom:10px;color:var(--dk)}
+.md p{font-size:12px;color:var(--g1);line-height:1.6}
+.md-row{display:flex;gap:8px;margin-top:14px;justify-content:flex-end}
+/* CR */
+.cr-form{background:var(--w);border:1px solid var(--bd);border-radius:var(--r);padding:18px}
+.cr-form h3{font-size:13px;font-weight:600;color:var(--dk);margin-bottom:10px}
+.cr-dat{font-size:12px;color:var(--g2);margin-bottom:10px;padding:5px 10px;background:var(--bg);border-radius:var(--rs);display:inline-block}
+.cr-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.cr-row .fi{flex:1;min-width:130px}
+.cr-ta{width:100%;min-height:150px;font-family:'Inter',sans-serif;font-size:13px;color:var(--dk);border:1px solid var(--bd);border-radius:var(--rs);padding:9px 11px;resize:vertical;line-height:1.7;margin-bottom:10px}
+.cr-ta:focus{outline:none;border-color:var(--bl)}
+.cr-ta::placeholder{color:var(--g4)}
+.cr-btns{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
+.mic{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:var(--rs);border:none;font-family:'Inter',sans-serif;font-size:11px;font-weight:500;cursor:pointer}
+.mic.idle{background:var(--bll);color:var(--bld)}
+.mic.rec{background:var(--red);color:#fff;animation:pu 1s infinite}
+@keyframes pu{0%,100%{opacity:1}50%{opacity:.7}}
+.cr-hint{font-size:11px;color:var(--g3)}
+.cr-list{margin-top:18px}
+.cr-it{background:var(--w);border:1px solid var(--bd);border-radius:var(--r);padding:12px 15px;margin-bottom:8px}
+.cr-hdr{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:6px}
+.cr-date{font-size:10px;font-family:'JetBrains Mono',monospace;color:var(--g3)}
+.cr-site{font-size:12px;font-weight:600;color:var(--dk)}
+.cr-mk{font-size:10px;font-weight:600;padding:2px 6px;border-radius:3px;background:var(--bll);color:var(--bld)}
+.cr-ob{font-size:11px;color:var(--g1);font-style:italic}
+.cr-tx{font-size:12px;color:var(--g1);line-height:1.7;white-space:pre-wrap;margin-bottom:8px}
+.cr-ft{display:flex;gap:7px}
+.isec{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--g2);margin:14px 0 8px;padding-bottom:5px;border-bottom:1px solid var(--bd)}
+.empty{text-align:center;padding:30px;color:var(--g2);font-size:12px}
+/* PRINT */
+@media print{
+  .tb,.tabs,.form-card,.filters,.tbl-top,.btn,.sp,.delbtn,.vbtn,.avsel,.mbl{display:none!important}
+  .page{padding:0;max-width:100%}
+  .tbl-scroll{max-height:none;overflow:visible}
+  table{min-width:0;font-size:9px}
+  thead th{background:#1E2E42!important;color:#ccc!important;position:static!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .tr-done{background:#E6F4EE!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .print-hdr{display:block!important}
+  .dash{display:none!important}
+}
+.print-hdr{display:none}
+@media(max-width:700px){.dash{flex-direction:column}.dsep{display:none}.tb-r{flex-wrap:wrap}}
+
+/* ─ RESPONSIVE MOBILE ─ */
+@media(max-width:768px){
+  .tb{padding:0 10px;gap:6px}
+  .tb-t{font-size:11px}.tb-s{display:none}
+  .tb-r .btn{font-size:10px;padding:4px 7px}
+  .logo{font-size:9px;padding:2px 6px}
+  .page{padding:10px 10px 80px}
+  .tab{padding:7px 10px;font-size:11px}
+  .dash{padding:10px 12px}.dn{font-size:28px}
+  .fg{grid-template-columns:1fr 1fr;gap:6px}
+  .tbl-card{display:none}
+  .mc-wrap{display:block!important}
+  .cr-row{flex-direction:column}
+}
+@media(min-width:769px){.mc-wrap{display:none!important}}
+
+/* ─ CARTES MOBILE ─ */
+.mc-wrap{display:none;margin-bottom:14px}
+.mc-filters-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px}
+.mc-cpt{font-size:11px;color:var(--g3);margin-bottom:8px}
+.mcc{background:var(--w);border:1px solid var(--bd);border-radius:var(--r);padding:12px 13px;margin-bottom:9px}
+.mcc.mcc-done{background:var(--grnl);border-color:#C0DEC8}
+.mcc.mcc-prog{background:var(--ambl);border-color:#F0D4A0}
+.mcc.mcc-bloc{background:var(--redl);border-color:#F0C0C0}
+.mcc-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:6px}
+.mcc-ville{font-size:14px;font-weight:600;color:var(--dk)}
+.mcc-dt{font-size:10px;color:var(--g3);font-family:'JetBrains Mono',monospace}
+.mcc-badges{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px}
+.mcc-txt{font-size:13px;color:var(--dk);line-height:1.5;margin-bottom:4px;font-weight:500}
+.mcc-res{font-size:11px;color:var(--g2);margin-bottom:4px}
+.mcc-delai{font-size:11px;color:var(--amb);margin-bottom:8px}
+.mcc-ft{display:flex;gap:7px;flex-wrap:wrap;align-items:center;padding-top:8px;border-top:1px solid var(--bd)}
+.mcc-sel{font-family:'Inter',sans-serif;font-size:11px;font-weight:500;border:1px solid var(--bd2);border-radius:4px;padding:5px 7px;cursor:pointer;outline:none;flex:1;min-width:110px}
+.mcc-vbtn{font-size:11px;font-weight:600;padding:5px 10px;border-radius:4px;border:none;cursor:pointer;font-family:'Inter',sans-serif;white-space:nowrap}
+.mcc-del{font-size:12px;color:var(--g3);background:none;border:none;cursor:pointer;padding:3px 5px;margin-left:auto}
+.mcc-del:hover{color:var(--red)}
+.fab{display:none;position:fixed;bottom:22px;right:18px;z-index:150;
+  background:var(--bl);color:#fff;border:none;border-radius:50%;
+  width:54px;height:54px;font-size:24px;cursor:pointer;
+  box-shadow:0 4px 18px rgba(59,130,196,.5);
+  align-items:center;justify-content:center}
+@media(max-width:768px){.fab{display:flex}}
+</style>
+</head>
+<body>
+
+<div class="tb">
+  <span class="logo">KPI GTC</span>
+  <div>
+    <div class="tb-t">Sébastien Brancourt — Coordinateur APV PR</div>
+    <div class="tb-s">Suivi terrain · Tressol-Chabrier</div>
+  </div>
+  <div class="tb-r">
+    <span class="sp" id="sp"></span>
+    <button class="btn btn-wh" onclick="doExport()">⬇ Excel</button>
+    <button class="btn btn-wh" onclick="doRapportMail()">✉ PA Gmail</button>
+    <button class="btn btn-wh" onclick="doPrint()">🖨 Imprimer</button>
+    <button class="btn btn-slides" onclick="doSlides()">▶ PowerPoint</button>
+    <button class="btn btn-wh" onclick="goTab('cr')">📝 CR</button>
+    <button class="btn btn-bl" onclick="openForm()">+ Plan d'action</button>
+  </div>
+</div>
+
+<!-- MODAL CONFIRM -->
+<div class="mbl" id="mbl">
+  <div class="md">
+    <h3>Confirmer la suppression</h3>
+    <p id="m-msg"></p>
+    <div class="md-row">
+      <button class="btn btn-gr" onclick="closeMd()">Annuler</button>
+      <button class="btn btn-red" id="m-ok">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<div class="page">
+  <div class="tabs">
+    <div class="tab on"  id="tab-pa" onclick="goTab('pa')">Plans d'action</div>
+    <div class="tab"     id="tab-cr" onclick="goTab('cr')">Comptes rendus</div>
+  </div>
+
+  <!-- ══ PANE PA ══ -->
+  <div class="pane on" id="pane-pa">
+
+    <div class="dash" id="dash">
+      <div>
+        <div class="dn" id="gpct">0%</div>
+        <div class="dl">Terminées</div>
+      </div>
+      <div class="dsep"></div>
+      <div class="dbars" id="dbars"></div>
+      <div style="font-size:11px;color:var(--g3);margin-left:auto;align-self:flex-end" id="dnote">—</div>
+    </div>
+
+    <!-- Formulaire -->
+    <div class="form-card" id="form-card">
+      <div class="form-hdr" onclick="toggleForm()">
+        <h3>Nouveau plan d'action</h3>
+        <span id="ftgl">▼ Ouvrir le formulaire</span>
+      </div>
+      <div class="form-body" id="form-body">
+        <div class="fg">
+          <div>
+            <div class="fl">Ville / Site *</div>
+            <select class="fi" id="fv">
+              <option value="">— Choisir —</option>
+              <option>Auch</option><option>Isle-Jourdain</option><option>Albi</option>
+              <option>Carcassonne</option><option>Carcassonne KIA</option>
+              <option>Toulouse</option><option>Labège</option><option>Muret</option>
+            </select>
+          </div>
+          <div>
+            <div class="fl">Marque *</div>
+            <select class="fi" id="fm">
+              <option value="">— Choisir —</option>
+              <option>Peugeot</option><option>Citroën</option><option>Fiat</option>
+              <option>Opel</option><option>KIA</option><option>Volvo</option>
+              <option>DS</option><option>Jeep</option><option>MG</option>
+              <option>Hyundai</option><option>Toutes marques</option>
+            </select>
+          </div>
+          <div>
+            <div class="fl">Métier *</div>
+            <select class="fi" id="fme">
+              <option value="">— Choisir —</option>
+              <option>APV — Réception</option><option>APV — Atelier</option>
+              <option>APV — Garantie</option><option>APV — Qualité</option>
+              <option>PR — Magasin</option><option>PR — Stock</option>
+              <option>Management</option><option>Label / Certification</option>
+              <option>Commercial APV</option><option>Autre</option>
+            </select>
+          </div>
+          <div>
+            <div class="fl">Priorité</div>
+            <select class="fi" id="fp">
+              <option value="1">🔴 P1 — Urgente</option>
+              <option value="2" selected>🟡 P2 — Importante</option>
+              <option value="3">🟢 P3 — Standard</option>
+            </select>
+          </div>
+          <div>
+            <div class="fl">Délai de traitement</div>
+            <input class="fi" id="fd" type="text" placeholder="Ex : Fin juillet, S32, 30/08…"/>
+          </div>
+          <div>
+            <div class="fl">Statut initial</div>
+            <select class="fi" id="fs">
+              <option value="todo">· À faire</option>
+              <option value="prog">⏳ En cours</option>
+              <option value="done">✓ Terminé</option>
+              <option value="blocked">⚠ Bloqué</option>
+            </select>
+          </div>
+          <div class="fg2">
+            <div class="fl">Nature de l'action *</div>
+            <input class="fi" id="fn" placeholder="Décrivez précisément l'action à mener…"/>
+          </div>
+          <div class="fg2">
+            <div class="fl">Résultat attendu</div>
+            <input class="fi" id="fr" placeholder="Quel résultat concret est attendu ?"/>
+          </div>
+        </div>
+        <div class="form-btns">
+          <button class="btn btn-bl" onclick="addPA()">Ajouter au tableau</button>
+          <button class="btn btn-gr" onclick="resetForm()">Effacer</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tableau -->
+    <div class="tbl-card">
+      <div class="tbl-top">
+        <h2>Tableau de suivi</h2>
+        <span id="tbcnt" style="font-size:11px;color:var(--g3)"></span>
+      </div>
+      <div class="filters">
+        <select class="fsel" id="ff-v" onchange="renderTable()"><option value="">Tous les sites</option></select>
+        <select class="fsel" id="ff-s" onchange="renderTable()">
+          <option value="">Tous statuts</option>
+          <option value="todo">À faire</option><option value="prog">En cours</option>
+          <option value="done">Terminé</option><option value="blocked">Bloqué</option>
+        </select>
+        <select class="fsel" id="ff-p" onchange="renderTable()">
+          <option value="">Toutes priorités</option>
+          <option value="1">P1</option><option value="2">P2</option><option value="3">P3</option>
+        </select>
+        <select class="fsel" id="ff-val" onchange="renderTable()">
+          <option value="">Toutes</option>
+          <option value="yes">Validées</option><option value="no">Non validées</option>
+        </select>
+        <span class="fcnt" id="fcnt"></span>
+      </div>
+      <!-- En-tête print -->
+      <div class="print-hdr" style="padding:10px 16px">
+        <strong style="font-size:12px">Plans d'action APV PR — Sébastien Brancourt</strong>
+        <span id="print-date" style="font-size:11px;color:#666;margin-left:12px"></span>
+      </div>
+      <div class="tbl-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th>Créé le</th><th>Ville</th><th>Marque</th><th>Métier</th>
+              <th>P</th><th>Nature de l'action</th><th>Résultat attendu</th>
+              <th>Délai</th><th>Avancement</th><th>Modifié le</th>
+              <th>Validé</th><th></th>
+            </tr>
+          </thead>
+          <tbody id="tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- CARTES MOBILE (visibles uniquement sur smartphone/tablette) -->
+  <div class="mc-wrap" id="mc-wrap">
+    <div class="mc-filters-row" id="mc-frow">
+      <select class="fsel" id="mc-fv" onchange="renderMC()"><option value="">Tous les sites</option></select>
+      <select class="fsel" id="mc-fs" onchange="renderMC()">
+        <option value="">Tous statuts</option>
+        <option value="todo">A faire</option><option value="prog">En cours</option>
+        <option value="done">Termine</option><option value="blocked">Bloque</option>
+      </select>
+      <select class="fsel" id="mc-fp" onchange="renderMC()">
+        <option value="">Toutes priorites</option>
+        <option value="1">P1</option><option value="2">P2</option><option value="3">P3</option>
+      </select>
+    </div>
+    <div class="mc-cpt" id="mc-cpt"></div>
+    <div id="mc-list"></div>
+  </div>
+
+  <button class="fab" onclick="openForm()" title="Nouveau plan d'action">+</button>
+
+  <!-- ══ PANE CR ══ -->
+  <div class="pane" id="pane-cr">
+    <div class="cr-form">
+      <h3>Nouveau compte rendu d'intervention</h3>
+      <div class="cr-dat" id="cr-dat"></div>
+      <div class="cr-row">
+        <select class="fi" id="cr-site"></select>
+        <select class="fi" id="cr-mk"></select>
+        <input  class="fi" id="cr-obj" placeholder="Objet (optionnel)"/>
+      </div>
+      <div style="margin-bottom:8px"></div>
+      <textarea class="cr-ta" id="cr-ta" placeholder="Rédigez ou dictez votre compte rendu…"></textarea>
+      <div class="cr-btns">
+        <button class="mic idle" id="mic" onclick="toggleMic()">
+          <span id="mic-i">🎤</span><span id="mic-l"> Dicter</span>
+        </button>
+        <button class="btn btn-bl" onclick="saveCR()">💾 Enregistrer</button>
+        <button class="btn btn-bl" onclick="sendCRGmail()">✉ Envoyer par Gmail</button>
+      </div>
+      <div class="cr-hint">Dictée vocale disponible sur Chrome / Edge.</div>
+    </div>
+    <div class="cr-list" id="cr-list"></div>
+  </div>
+</div>
+
+<script>
+// ═══ CONFIG ════════════════════════════════════════════════════════
+var API   = "https://script.google.com/macros/s/AKfycbwmyyo0aHAnPstZsAhmYdge-ndFKveEXhjQpWakXOhfCqK5d_ZXWc6BCLb1N4eznIJGgg/exec";
+var SLIDES_API = "https://script.google.com/macros/s/AKfycbz3yUCa53p87c5S6GkmEjzyRReh6dbaaaK1ga0-RRFpHF-qGcLg5cLG29h2kXGh5vBcYA/exec";
+var LS_PA = "kpi_gtc_pa";
+var LS_CR = "kpi_gtc_cr";
+
+var VILLES  = ["Auch","Isle-Jourdain","Albi","Carcassonne","Carcassonne KIA","Toulouse","Labège","Muret"];
+var MARQUES = ["Peugeot","Citroën","Fiat","Opel","KIA","Volvo","DS","Jeep","MG","Hyundai","Toutes marques"];
+
+var AV = [
+  {v:"todo",    l:"À faire",  cls:"av-todo"},
+  {v:"prog",    l:"En cours", cls:"av-prog"},
+  {v:"done",    l:"Terminé",  cls:"av-done"},
+  {v:"blocked", l:"Bloqué",   cls:"av-bloc"}
+];
+var PL = {"1":"🔴 P1","2":"🟡 P2","3":"🟢 P3"};
+var PC = {"1":"p1","2":"p2","3":"p3"};
+
+var PAS = [];
+var CRS = [];
+var recog = null, isRec = false;
+
+// ═══ STORAGE ═══════════════════════════════════════════════════════
+function loadPA()  { try { PAS = JSON.parse(localStorage.getItem(LS_PA))||[]; } catch(e) { PAS=[]; } }
+function savePA()  { localStorage.setItem(LS_PA, JSON.stringify(PAS)); }
+function loadCR()  { try { CRS = JSON.parse(localStorage.getItem(LS_CR))||[]; } catch(e) { CRS=[]; } }
+function saveCR_() { localStorage.setItem(LS_CR, JSON.stringify(CRS)); }
+
+// ═══ UTILS ═════════════════════════════════════════════════════════
+function uid()   { return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+function now_fr(){ return new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+function now_long(){ return new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}); }
+function esc(s)  { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function flash(ok){
+  var el=document.getElementById("sp");
+  el.textContent=ok?"✓ Sauvegardé":"⚠ Erreur";
+  el.className="sp ok";
+  clearTimeout(el._t);
+  el._t=setTimeout(function(){el.className="sp";},2000);
+}
+function avObj(v){ return AV.filter(function(x){return x.v===v;})[0]||AV[0]; }
+
+// ═══ REMOTE ════════════════════════════════════════════════════════
+function push(payload){
+  fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
+    .catch(function(){});
+}
+
+// ═══ ONGLETS ═══════════════════════════════════════════════════════
+function goTab(t){
+  ["pa","cr"].forEach(function(id){
+    document.getElementById("pane-"+id).classList.toggle("on",id===t);
+    document.getElementById("tab-"+id).classList.toggle("on",id===t);
+  });
+  if(t==="cr") initCRForm();
+}
+
+// ═══ FORMULAIRE ════════════════════════════════════════════════════
+function openForm(){
+  goTab("pa");
+  var b=document.getElementById("form-body");
+  b.classList.add("open");
+  document.getElementById("ftgl").textContent="▲ Réduire";
+  b.scrollIntoView({behavior:"smooth",block:"start"});
+}
+function toggleForm(){
+  var b=document.getElementById("form-body");
+  b.classList.toggle("open");
+  document.getElementById("ftgl").textContent=b.classList.contains("open")?"▲ Réduire":"▼ Ouvrir le formulaire";
+}
+function resetForm(){
+  ["fv","fm","fme","fn","fr","fd"].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value="";
+  });
+  document.getElementById("fp").value="2";
+  document.getElementById("fs").value="todo";
+}
+function addPA(){
+  var v=document.getElementById("fv").value;
+  var m=document.getElementById("fm").value;
+  var me=document.getElementById("fme").value;
+  var n=document.getElementById("fn").value.trim();
+  if(!v||!m||!me||!n){ alert("Veuillez renseigner : Ville, Marque, Métier et Nature de l'action."); return; }
+  var pa={
+    id:uid(), creeLe:now_fr(), ville:v, marque:m, metier:me,
+    prio:document.getElementById("fp").value,
+    nature:n,
+    resultat:document.getElementById("fr").value.trim(),
+    delai:document.getElementById("fd").value.trim(),
+    statut:document.getElementById("fs").value,
+    modifLe:now_fr(), valide:"no"
+  };
+  PAS.unshift(pa);
+  savePA(); flash(true);
+  push({action:"savePA",data:pa});
+  resetForm();
+  renderAll();
+}
+
+// ═══ TABLEAU ═══════════════════════════════════════════════════════
+function filtered(){
+  var fv=document.getElementById("ff-v").value;
+  var fs=document.getElementById("ff-s").value;
+  var fp=document.getElementById("ff-p").value;
+  var fval=document.getElementById("ff-val").value;
+  return PAS.filter(function(p){
+    if(fv  && p.ville !==fv)   return false;
+    if(fs  && p.statut!==fs)   return false;
+    if(fp  && p.prio  !==fp)   return false;
+    if(fval&& p.valide!==fval) return false;
+    return true;
+  });
+}
+
+function renderDash(){
+  var t=PAS.length, d=PAS.filter(function(p){return p.statut==="done";}).length;
+  document.getElementById("gpct").textContent=(t?Math.round(d/t*100):0)+"%";
+  var bv={};
+  PAS.forEach(function(p){ if(!bv[p.ville]) bv[p.ville]={t:0,d:0}; bv[p.ville].t++; if(p.statut==="done") bv[p.ville].d++; });
+  var bars=document.getElementById("dbars"); bars.innerHTML="";
+  Object.keys(bv).forEach(function(v){
+    var pc=Math.round(bv[v].d/bv[v].t*100);
+    bars.innerHTML+='<div class="dbr"><div class="dbl">'+esc(v)+'</div><div class="dbt"><div class="dbf" style="width:'+pc+'%;background:var(--bl)"></div></div><div class="dbp">'+pc+'%</div></div>';
+  });
+  document.getElementById("dnote").textContent=t?d+"/"+t+" terminées":"Aucune action";
+}
+
+function renderFilters(){
+  var sel=document.getElementById("ff-v"), cur=sel.value;
+  var villes=[];
+  PAS.forEach(function(p){if(villes.indexOf(p.ville)<0) villes.push(p.ville);});
+  sel.innerHTML='<option value="">Tous les sites</option>';
+  villes.forEach(function(v){ sel.innerHTML+='<option value="'+esc(v)+'"'+(cur===v?" selected":"")+'>'+esc(v)+'</option>'; });
+}
+
+function renderTable(){
+  var data=filtered();
+  document.getElementById("tbcnt").textContent=PAS.length+" action"+(PAS.length!==1?"s":"");
+  document.getElementById("fcnt").textContent=data.length+" affichée"+(data.length!==1?"s":"");
+  var tbody=document.getElementById("tbody");
+  if(!data.length){
+    tbody.innerHTML='<tr><td colspan="12" class="empty">Aucune action ne correspond aux filtres sélectionnés.</td></tr>';
+    return;
+  }
+  var h="";
+  data.forEach(function(pa){
+    var av=avObj(pa.statut);
+    var avOpts=AV.map(function(a){return '<option value="'+a.v+'"'+(pa.statut===a.v?" selected":"")+'>'+a.l+'</option>';}).join("");
+    h+='<tr class="'+(pa.statut==="done"?"tr-done":"")+'" id="row-'+pa.id+'">'
+      +'<td class="td-date">'+esc(pa.creeLe)+'</td>'
+      +'<td style="font-weight:600;white-space:nowrap">'+esc(pa.ville)+'</td>'
+      +'<td><span class="badge b-mk">'+esc(pa.marque)+'</span></td>'
+      +'<td><span class="badge b-me">'+esc(pa.metier)+'</span></td>'
+      +'<td><span class="badge '+PC[pa.prio]+'">'+PL[pa.prio]+'</span></td>'
+      +'<td class="td-action">'+esc(pa.nature)+'</td>'
+      +'<td class="td-res">'+esc(pa.resultat)+'</td>'
+      +'<td style="white-space:nowrap;font-size:11px">'+esc(pa.delai)+'</td>'
+      +'<td><select class="avsel '+av.cls+'" onchange="updAv(\''+pa.id+'\',this)">'+avOpts+'</select></td>'
+      +'<td class="td-date" id="maj-'+pa.id+'">'+esc(pa.modifLe)+'</td>'
+      +'<td><button class="vbtn '+(pa.valide==="yes"?"v-yes":"v-no")+'" onclick="toggleVal(\''+pa.id+'\')">'+
+        (pa.valide==="yes"?"✓ Validé":"✗ Non validé")+'</button></td>'
+      +'<td><button class="delbtn" onclick="askDel(\''+pa.id+'\')" title="Supprimer">✕</button></td>'
+      +'</tr>';
+  });
+  tbody.innerHTML=h;
+}
+
+
+// ── CARTES MOBILE ────────────────────────────────────────────────
+function mcFiltered(){
+  var fv=(document.getElementById("mc-fv")||{value:""}).value;
+  var fs2=(document.getElementById("mc-fs")||{value:""}).value;
+  var fp=(document.getElementById("mc-fp")||{value:""}).value;
+  return PAS.filter(function(p){
+    if(fv  && p.ville  !==fv)  return false;
+    if(fs2 && p.statut !==fs2) return false;
+    if(fp  && p.prio   !==fp)  return false;
+    return true;
+  });
+}
+
+function renderMC(){
+  var data=mcFiltered();
+  var list=document.getElementById("mc-list");
+  var cpt=document.getElementById("mc-cpt");
+  if(!list) return;
+
+  // Filtre villes
+  var selV=document.getElementById("mc-fv");
+  if(selV){
+    var cur=selV.value, villes=[], oh="";
+    PAS.forEach(function(p){if(villes.indexOf(p.ville)<0) villes.push(p.ville);});
+    oh="<option value=" + chr(34) + chr(34) + ">Tous les sites</option>";
+    villes.forEach(function(v){ oh+="<option value=" + chr(34)+esc(v)+chr(34) + (cur===v?" selected":"") + ">"+esc(v)+"</option>"; });
+    selV.innerHTML=oh;
+  }
+  if(cpt) cpt.textContent=data.length+" action"+(data.length!==1?"s":"");
+  if(!data.length){ list.innerHTML="<div class='empty'>Aucune action.</div>"; return; }
+
+  var avCol={todo:"475569",prog:"B86F0A",done:"1A7A4A",blocked:"C0392B"};
+  var avBg ={todo:"F1F5F9",prog:"FEF3E2",done:"E6F4EE",blocked:"FDECEA"};
+  var pCol ={"1":"991B1B","2":"92400E","3":"166534"};
+  var pBg  ={"1":"FEE2E2","2":"FEF3C7","3":"DCFCE7"};
+  var h="";
+
+  data.forEach(function(pa){
+    var av=avObj(pa.statut);
+    var cls={done:"mcc-done",prog:"mcc-prog",blocked:"mcc-bloc"}[pa.statut]||"";
+    var avc=avCol[pa.statut]||"475569";
+    var avb=avBg[pa.statut]||"F1F5F9";
+    var pc=pCol[pa.prio]||"92400E";
+    var pb=pBg[pa.prio]||"FEF3C7";
+    var avOpts="";
+    AV.forEach(function(a){ avOpts+="<option value="+chr(34)+a.v+chr(34)+(pa.statut===a.v?" selected":"")+">"+a.l+"</option>"; });
+    var valTxt=pa.valide==="yes"?"Valide":"Non valide";
+    var valCls=pa.valide==="yes"?"v-yes":"v-no";
+
+    h+="<div class='mcc "+cls+"' id='mcc-"+pa.id+"'>";
+    h+="<div class='mcc-hdr'>";
+    h+="<div><div class='mcc-ville'>"+esc(pa.ville)+"</div><div class='mcc-dt'>"+esc(pa.creeLe)+"</div></div>";
+    h+="<button class='mcc-del' data-id='"+pa.id+"' onclick='askDel(this.dataset.id)'>x</button>";
+    h+="</div>";
+    h+="<div class='mcc-badges'>";
+    h+="<span class='badge' style='background:#"+pb+";color:#"+pc+"'>"+(PL[pa.prio]||"P2")+"</span>";
+    h+="<span class='badge b-mk'>"+esc(pa.marque)+"</span>";
+    h+="<span class='badge b-me'>"+esc(pa.metier)+"</span>";
+    h+="</div>";
+    h+="<div class='mcc-txt'>"+esc(pa.nature)+"</div>";
+    if(pa.resultat) h+="<div class='mcc-res'>"+esc(pa.resultat)+"</div>";
+    if(pa.delai)    h+="<div class='mcc-delai'>Delai : "+esc(pa.delai)+"</div>";
+    h+="<div class='mcc-ft'>";
+    h+="<select class='mcc-sel' data-id='"+pa.id+"' style='background:#"+avb+";color:#"+avc+"' onchange='updAvMC(this.dataset.id,this)'>"+avOpts+"</select>";
+    h+="<button class='mcc-vbtn "+valCls+"' data-id='"+pa.id+"' onclick='toggleVal(this.dataset.id)'>"+valTxt+"</button>";
+    h+="</div></div>";
+  });
+  list.innerHTML=h;
+}
+
+function chr(n){ return String.fromCharCode(n); }
+
+function updAvMC(id,sel){
+  var pa=PAS.filter(function(x){return x.id===id;})[0]; if(!pa) return;
+  pa.statut=sel.value; pa.modifLe=now_fr();
+  var avb={todo:"#F1F5F9",prog:"#FEF3E2",done:"#E6F4EE",blocked:"#FDECEA"}[pa.statut]||"#F1F5F9";
+  var avc={todo:"#475569",prog:"#B86F0A",done:"#1A7A4A",blocked:"#C0392B"}[pa.statut]||"#475569";
+  sel.style.background=avb; sel.style.color=avc;
+  var card=document.getElementById("mcc-"+id);
+  if(card) card.className="mcc "+({done:"mcc-done",prog:"mcc-prog",blocked:"mcc-bloc"}[pa.statut]||"");
+  savePA(); flash(true);
+  push({action:"savePA",data:pa});
+  var t=PAS.length,d=PAS.filter(function(p){return p.statut==="done";}).length;
+  document.getElementById("gpct").textContent=(t?Math.round(d/t*100):0)+"%";
+  document.getElementById("dnote").textContent=t?d+"/"+t+" terminees":"Aucune action";
+}
+
+
+function renderAll(){ renderDash(); renderFilters(); renderTable(); renderMC(); }
+
+// ═══ INTERACTIONS TABLEAU ═══════════════════════════════════════════
+function updAv(id, sel){
+  var pa=PAS.filter(function(x){return x.id===id;})[0]; if(!pa) return;
+  pa.statut=sel.value; pa.modifLe=now_fr();
+  sel.className="avsel "+avObj(pa.statut).cls;
+  var maj=document.getElementById("maj-"+id); if(maj) maj.textContent=pa.modifLe;
+  var row=document.getElementById("row-"+id);
+  if(row){ if(pa.statut==="done") row.classList.add("tr-done"); else row.classList.remove("tr-done"); }
+  savePA(); flash(true);
+  push({action:"savePA",data:pa});
+  // Recalculer et afficher immédiatement la jauge
+  var t=PAS.length, d=PAS.filter(function(p){return p.statut==="done";}).length;
+  document.getElementById("gpct").textContent=(t?Math.round(d/t*100):0)+"%";
+  document.getElementById("dnote").textContent=t?d+"/"+t+" terminées":"Aucune action";
+  // Barre du site concerné
+  var bv={};
+  PAS.forEach(function(p){if(!bv[p.ville])bv[p.ville]={t:0,d:0};bv[p.ville].t++;if(p.statut==="done")bv[p.ville].d++;});
+  var bars=document.getElementById("dbars"); bars.innerHTML="";
+  Object.keys(bv).forEach(function(v){
+    var pc=Math.round(bv[v].d/bv[v].t*100);
+    bars.innerHTML+='<div class="dbr"><div class="dbl">'+esc(v)+'</div><div class="dbt"><div class="dbf" style="width:'+pc+'%;background:var(--bl)"></div></div><div class="dbp">'+pc+'%</div></div>';
+  });
+}
+function toggleVal(id){
+  var pa=PAS.filter(function(x){return x.id===id;})[0]; if(!pa) return;
+  pa.valide=pa.valide==="yes"?"no":"yes"; pa.modifLe=now_fr();
+  savePA(); flash(true);
+  push({action:"savePA",data:pa});
+  renderTable(); renderDash();
+}
+function askDel(id){
+  var pa=PAS.filter(function(x){return x.id===id;})[0]; if(!pa) return;
+  document.getElementById("m-msg").textContent='Supprimer "'+pa.nature+'" ? Action irréversible.';
+  document.getElementById("m-ok").onclick=function(){confDel(id);};
+  document.getElementById("mbl").classList.add("open");
+}
+function closeMd(){ document.getElementById("mbl").classList.remove("open"); }
+function confDel(id){
+  PAS=PAS.filter(function(x){return x.id!==id;});
+  savePA(); flash(true); push({action:"deletePA",id:id});
+  closeMd(); renderAll();
+}
+
+// ═══ EXPORT EXCEL ═══════════════════════════════════════════════════
+function doExport(){
+  var wb=XLSX.utils.book_new();
+  var rows=[["Créé le","Ville","Marque","Métier","Priorité","Action","Résultat attendu","Délai","Avancement","Modifié le","Validé"]];
+  PAS.forEach(function(pa){
+    rows.push([pa.creeLe,pa.ville,pa.marque,pa.metier,PL[pa.prio]||"",pa.nature,pa.resultat||"",pa.delai||"",avObj(pa.statut).l,pa.modifLe||"",pa.valide==="yes"?"Validé":"Non validé"]);
+  });
+  var ws=XLSX.utils.aoa_to_sheet(rows);
+  ws["!cols"]=[{wch:11},{wch:16},{wch:11},{wch:18},{wch:7},{wch:38},{wch:28},{wch:13},{wch:13},{wch:11},{wch:11}];
+  XLSX.utils.book_append_sheet(wb,ws,"Plans d'action");
+  if(CRS.length){
+    var cr=[["Date","Site","Marque","Objet","Compte rendu"]];
+    CRS.forEach(function(c){cr.push([c.date,c.siteNom||"",c.marque||"",c.objet||"",c.texte]);});
+    var ws2=XLSX.utils.aoa_to_sheet(cr);
+    ws2["!cols"]=[{wch:11},{wch:16},{wch:11},{wch:22},{wch:60}];
+    XLSX.utils.book_append_sheet(wb,ws2,"Comptes rendus");
+  }
+  XLSX.writeFile(wb,"suivi_brancourt_"+new Date().toISOString().slice(0,10)+".xlsx");
+}
+
+// ═══ RAPPORT MAIL ═══════════════════════════════════════════════════
+function buildRapportTxt(){
+  var data=filtered();
+  var t=data.length, d=data.filter(function(p){return p.statut==="done";}).length;
+  var pr=data.filter(function(p){return p.statut==="prog";}).length;
+  var bl=data.filter(function(p){return p.statut==="blocked";}).length;
+  var af=data.filter(function(p){return p.statut==="todo";}).length;
+  var txt="RAPPORT PLANS D'ACTION — APV PR\n";
+  txt+="Sébastien Brancourt — Groupe Tressol-Chabrier\n";
+  txt+="Généré le : "+now_long()+"\n";
+  txt+="=".repeat(58)+"\n\n";
+  txt+="SYNTHÈSE\n";
+  txt+="Total : "+t+" | Terminées : "+d+" | En cours : "+pr+" | Bloquées : "+bl+" | À faire : "+af+"\n";
+  txt+="Avancement : "+(t?Math.round(d/t*100):0)+"%\n";
+  var p1=data.filter(function(p){return p.prio==="1"&&p.statut!=="done";});
+  if(p1.length) txt+="\n⚠ "+p1.length+" action(s) urgente(s) P1 non terminée(s)\n";
+  txt+="\n";
+  var bv={};
+  data.forEach(function(p){if(!bv[p.ville])bv[p.ville]=[];bv[p.ville].push(p);});
+  Object.keys(bv).forEach(function(ville){
+    txt+="\n━━━ "+ville.toUpperCase()+" ━━━\n";
+    bv[ville].forEach(function(pa,i){
+      var av=avObj(pa.statut);
+      txt+=(i+1)+". ["+av.l+"] "+(PL[pa.prio]||"P2")+" — "+pa.marque+" / "+pa.metier+"\n";
+      txt+="   → "+pa.nature+"\n";
+      if(pa.resultat) txt+="   Attendu : "+pa.resultat+"\n";
+      if(pa.delai)    txt+="   Délai : "+pa.delai+"\n";
+      txt+="   Validé : "+(pa.valide==="yes"?"Oui":"Non")+"\n";
+    });
+  });
+  txt+="\n\n--\nSébastien Brancourt — Coordinateur APV PR\nGroupe Tressol-Chabrier";
+  return txt;
+}
+function doRapportMail(){
+  var data=filtered();
+  if(!data.length){alert("Aucun plan d'action à envoyer.");return;}
+  var t=data.length;
+  var d=data.filter(function(p){return p.statut==="done";}).length;
+  var pr=data.filter(function(p){return p.statut==="prog";}).length;
+  var bl=data.filter(function(p){return p.statut==="blocked";}).length;
+  var p1=data.filter(function(p){return p.prio==="1"&&p.statut!=="done";});
+  var gp=t?Math.round(d/t*100):0;
+  var dateStr=now_long();
+
+  // Couleurs par statut
+  var avColor={todo:"#475569",prog:"#B86F0A",done:"#1A7A4A",blocked:"#C0392B"};
+  var avBg   ={todo:"#F1F5F9",prog:"#FEF3E2",done:"#E6F4EE",blocked:"#FDECEA"};
+  var prioColor={"1":"#991B1B","2":"#92400E","3":"#166534"};
+  var prioBg={"1":"#FEE2E2","2":"#FEF3C7","3":"#DCFCE7"};
+
+  // Lignes du tableau
+  var rows="";
+  data.forEach(function(pa){
+    var av=avObj(pa.statut);
+    var rowBg=pa.statut==="done"?"#F0FAF4":"#ffffff";
+    var tdS="padding:6px 8px;border-bottom:1px solid #E2E8F0;";
+    rows+="<tr style='background:"+rowBg+"'>";
+    rows+="<td style='"+tdS+"font-size:10px;color:#64748B;white-space:nowrap'>"+esc(pa.creeLe)+"</td>";
+    rows+="<td style='"+tdS+"font-size:12px;font-weight:600;white-space:nowrap'>"+esc(pa.ville)+"</td>";
+    rows+="<td style='"+tdS+"'><span style='background:#EBF3FC;color:#2563A8;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px'>"+esc(pa.marque)+"</span></td>";
+    rows+="<td style='"+tdS+"'><span style='background:#EEF2FF;color:#3730A3;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px'>"+esc(pa.metier)+"</span></td>";
+    rows+="<td style='"+tdS+"'><span style='background:"+(prioBg[pa.prio]||"#FEF3C7")+";color:"+(prioColor[pa.prio]||"#92400E")+";font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px'>"+(PL[pa.prio]||"P2")+"</span></td>";
+    rows+="<td style='"+tdS+"font-size:11px'>"+esc(pa.nature)+"</td>";
+    rows+="<td style='"+tdS+"font-size:10px;color:#64748B'>"+esc(pa.resultat)+"</td>";
+    rows+="<td style='"+tdS+"font-size:11px;white-space:nowrap'>"+esc(pa.delai)+"</td>";
+    rows+="<td style='"+tdS+"'><span style='background:"+(avBg[pa.statut]||"#F1F5F9")+";color:"+(avColor[pa.statut]||"#475569")+";font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px'>"+av.l+"</span></td>";
+    rows+="<td style='"+tdS+"font-size:10px;color:#64748B;white-space:nowrap'>"+esc(pa.modifLe)+"</td>";
+    rows+="<td style='"+tdS+"font-size:11px;font-weight:700;color:"+(pa.valide==="yes"?"#1A7A4A":"#C0392B")+"'>"+(pa.valide==="yes"?"&#10003; Validé":"&#10007; Non validé")+"</td>";
+    rows+="</tr>";
+  });
+
+  // Alertes P1
+  var alertBlock="";
+  if(p1.length){
+    var prows="";
+    p1.forEach(function(pa){
+      prows+="<tr><td style='padding:5px 8px;font-weight:600'>"+esc(pa.ville)+"</td><td style='padding:5px 8px'>"+esc(pa.marque)+"</td><td style='padding:5px 8px'>"+esc(pa.nature)+"</td><td style='padding:5px 8px'>"+esc(pa.delai)+"</td></tr>";
+    });
+    alertBlock="<div style='background:#FEE2E2;border-left:4px solid #C0392B;padding:12px 16px;margin:16px 0;border-radius:4px'>"
+      +"<strong style='color:#991B1B;font-size:13px'>&#9888; "+p1.length+" action(s) urgente(s) P1 non termin&#233;e(s)</strong>"
+      +"<table style='width:100%;border-collapse:collapse;margin-top:8px;font-size:12px'>"
+      +"<tr style='background:#FECACA'><th style='padding:4px 8px;text-align:left'>Ville</th><th style='padding:4px 8px;text-align:left'>Marque</th><th style='padding:4px 8px;text-align:left'>Action</th><th style='padding:4px 8px;text-align:left'>D&#233;lai</th></tr>"
+      +prows+"</table></div>";
+  }
+
+  // HTML complet
+  var parts=[];
+  parts.push("<!DOCTYPE html><html><head><meta charset='UTF-8'><title>Rapport PA</title></head>");
+  parts.push("<body style='font-family:Arial,sans-serif;max-width:1100px;margin:0 auto;padding:0;color:#1A2535'>");
+  parts.push("<div style='background:#1E2E42;padding:12px 20px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10'>");
+// Construire le lien Gmail dynamiquement avec le texte du rapport
+  var mailSubject = "Plans d'action APV PR \u2014 " + dateStr + " \u2014 " + t + " actions";
+  var mailBody = "Rapport Plans d'action APV PR\n"
+    + "S\u00e9bastien Brancourt \u2014 Groupe Tressol-Chabrier\n"
+    + dateStr + "\n" + "=".repeat(50) + "\n\n"
+    + "SYNTH\u00c8SE\n"
+    + "Avancement : " + gp + "%\n"
+    + "Total : " + t + " | Termin\u00e9es : " + d + " | En cours : " + pr + " | Bloqu\u00e9es : " + bl + "\n\n";
+  var bv2={};
+  data.forEach(function(pa){if(!bv2[pa.ville])bv2[pa.ville]=[];bv2[pa.ville].push(pa);});
+  Object.keys(bv2).forEach(function(v){
+    mailBody += "\n\u2500\u2500\u2500 " + v.toUpperCase() + " \u2500\u2500\u2500\n";
+    bv2[v].forEach(function(pa){
+      var av=avObj(pa.statut);
+      mailBody += "\u2022 [" + av.l + "] " + (PL[pa.prio]||"P2") + " \u2014 " + pa.marque + " / " + pa.metier + "\n";
+      mailBody += "  \u2192 " + pa.nature + "\n";
+      if(pa.resultat) mailBody += "  Attendu : " + pa.resultat + "\n";
+      if(pa.delai)    mailBody += "  D\u00e9lai : " + pa.delai + "\n";
+    });
+  });
+  mailBody += "\n\n--\nS\u00e9bastien Brancourt \u2014 Coordinateur APV PR \u2014 Groupe Tressol-Chabrier";
+  var gmail_url = "https://mail.google.com/mail/?view=cm&fs=1"
+    + "&to=" + encodeURIComponent("regis.collin@tressol-chabrier.com")
+    + "&su=" + encodeURIComponent(mailSubject)
+    + "&body=" + encodeURIComponent(mailBody);
+    parts.push("<span style='color:#fff;font-size:13px;font-weight:600;flex:1'>Plans d&#39;action APV PR &#8212; Tressol-Chabrier</span>");
+  parts.push("<a href=\""+gmail_url+"\" target=\"_blank\" style=\"background:#3B82C4;color:#fff;border:none;border-radius:5px;padding:6px 12px;cursor:pointer;font-size:11px;text-decoration:none;font-family:Arial,sans-serif\">&#9993; Envoyer par Gmail</a>");
+  parts.push("<button onclick='window.print()' style='background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:5px;padding:6px 12px;cursor:pointer;font-size:11px'>&#128424; Imprimer</button>");
+  parts.push("</div>");
+  parts.push("<div style='padding:20px'>");
+  parts.push("<p style='font-size:11px;color:#6B829A;margin-bottom:16px'>S&#233;bastien Brancourt &#8212; Groupe Tressol-Chabrier &#8212; "+dateStr+"</p>");
+  // KPIs
+  parts.push("<div style='display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap'>");
+  var kpis=[
+    {val:gp+"%",lbl:"Avancement",c:"#3B82C4",bg:"#EBF3FC"},
+    {val:String(d),lbl:"Termin&#233;es",c:"#1A7A4A",bg:"#E6F4EE"},
+    {val:String(pr),lbl:"En cours",c:"#B86F0A",bg:"#FEF3E2"},
+    {val:String(bl),lbl:"Bloqu&#233;es",c:"#C0392B",bg:"#FDECEA"},
+    {val:String(t),lbl:"Total",c:"#3A4D63",bg:"#F0F4F8"}
+  ];
+  kpis.forEach(function(k){
+    parts.push("<div style='background:"+k.bg+";padding:10px 14px;border-radius:6px;text-align:center;min-width:80px'>"
+      +"<div style='font-size:24px;font-weight:700;color:"+k.c+";font-family:monospace'>"+k.val+"</div>"
+      +"<div style='font-size:10px;color:"+k.c+";margin-top:2px'>"+k.lbl+"</div></div>");
+  });
+  parts.push("</div>");
+  parts.push(alertBlock);
+  // Tableau
+  parts.push("<div style='overflow-x:auto'><table style='width:100%;border-collapse:collapse;font-size:11px'>");
+  parts.push("<thead><tr style='background:#1E2E42'>");
+  ["Cr&#233;&#233; le","Ville","Marque","M&#233;tier","P","Action","R&#233;sultat","D&#233;lai","Avancement","Modifi&#233;","Valid&#233;"].forEach(function(h){
+    parts.push("<th style='padding:8px;text-align:left;color:#96A8BC;font-size:10px;font-weight:600;text-transform:uppercase;white-space:nowrap'>"+h+"</th>");
+  });
+  parts.push("</tr></thead><tbody>"+rows+"</tbody></table></div>");
+  parts.push("<p style='margin-top:16px;font-size:10px;color:#96A8BC;border-top:1px solid #E2E8F0;padding-top:10px'>");
+  parts.push("S&#233;bastien Brancourt &#8212; Coordinateur APV PR &#8212; Groupe Tressol-Chabrier</p>");
+  parts.push("</div></body></html>");
+
+  var html=parts.join("");
+  var win=window.open("","_blank","width=1200,height=750");
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
+
+// ═══ IMPRESSION ═════════════════════════════════════════════════════
+function doPrint(){
+  var data=filtered();
+  if(!data.length){alert("Aucun plan d'action à imprimer.");return;}
+  document.getElementById("print-date").textContent="— "+now_long()+" — "+data.length+" action"+(data.length!==1?"s":"");
+  window.print();
+}
+
+// ═══ GOOGLE SLIDES ══════════════════════════════════════════════════
+function doSlides(){
+  var data = filtered();
+  if(!data.length){ alert("Aucun plan d'action à exporter."); return; }
+
+  var btn = document.querySelector('.btn-slides');
+  if(btn){ btn.textContent="⏳ Génération..."; btn.disabled=true; }
+
+  try {
+    var t  = data.length;
+    var d  = data.filter(function(p){return p.statut==="done";}).length;
+    var pr = data.filter(function(p){return p.statut==="prog";}).length;
+    var bl = data.filter(function(p){return p.statut==="blocked";}).length;
+    var gp = t ? Math.round(d/t*100) : 0;
+
+    var byVille = {};
+    data.forEach(function(p){ if(!byVille[p.ville]) byVille[p.ville]=[]; byVille[p.ville].push(p); });
+    var villes = Object.keys(byVille);
+    var p1 = data.filter(function(p){return p.prio==="1" && p.statut!=="done";});
+
+    var pptx = new PptxGenJS();
+    pptx.layout = "LAYOUT_16x9";
+    pptx.author = "Sébastien Brancourt";
+    pptx.company = "Groupe Tressol-Chabrier";
+    pptx.subject = "Plans d'action APV PR";
+
+    var C_DK="#1E2E42", C_BL="#3B82C4", C_WH="#FFFFFF", C_GR="#96A8BC";
+    var C_GRN="#1A7A4A",C_AMB="#B86F0A",C_RED="#C0392B";
+    var AV_L={todo:"À faire",prog:"En cours",done:"Terminé",blocked:"Bloqué"};
+    var AV_C={todo:"475569",prog:"B86F0A",done:"1A7A4A",blocked:"C0392B"};
+    var AV_B={todo:"F1F5F9",prog:"FEF3E2",done:"E6F4EE",blocked:"FDECEA"};
+    var PR_L={"1":"P1","2":"P2","3":"P3"};
+    var PR_C={"1":"991B1B","2":"92400E","3":"166534"};
+    var PR_B={"1":"FEE2E2","2":"FEF3C7","3":"DCFCE7"};
+
+    // ── SLIDE 1 : TITRE ────────────────────────────────────────────
+    var s1 = pptx.addSlide();
+    s1.background = {fill:"1E2E42"};
+    // Barre latérale
+    s1.addShape(pptx.ShapeType.rect, {x:0, y:0, w:0.12, h:"100%", fill:{color:"3B82C4"}, line:{color:"3B82C4"}});
+    s1.addText("Plans d'action APV PR", {x:0.3,y:1.2,w:9,h:1,fontSize:36,bold:true,color:"FFFFFF",fontFace:"Calibri"});
+    s1.addText("Coordinateur APV PR — Sébastien Brancourt", {x:0.3,y:2.3,w:8,h:0.5,fontSize:18,color:"96A8BC",fontFace:"Calibri"});
+    s1.addText("Groupe Tressol-Chabrier  ·  "+now_fr(), {x:0.3,y:2.85,w:7,h:0.4,fontSize:13,color:"3B82C4",fontFace:"Calibri"});
+    s1.addShape(pptx.ShapeType.roundRect, {x:7.2,y:3.8,w:2.2,h:0.6,fill:{color:"3B82C4"},line:{color:"3B82C4"},rectRadius:0.1});
+    s1.addText(gp+"% avancement", {x:7.2,y:3.82,w:2.2,h:0.56,fontSize:14,bold:true,color:"FFFFFF",align:"center",fontFace:"Calibri"});
+
+    // ── SLIDE 2 : SYNTHÈSE ─────────────────────────────────────────
+    var s2 = pptx.addSlide();
+    s2.background = {fill:"F0F4F8"};
+    s2.addShape(pptx.ShapeType.rect, {x:0,y:0,w:"100%",h:0.75,fill:{color:"1E2E42"},line:{color:"1E2E42"}});
+    s2.addShape(pptx.ShapeType.rect, {x:0,y:0,w:0.08,h:0.75,fill:{color:"3B82C4"},line:{color:"3B82C4"}});
+    s2.addText("Synthèse globale", {x:0.15,y:0.15,w:9,h:0.45,fontSize:18,bold:true,color:"FFFFFF",fontFace:"Calibri"});
+
+    var kpis=[
+      {v:gp+"%",   l:"Avancement", c:"3B82C4",bg:"EBF3FC"},
+      {v:String(d),l:"Terminées",  c:"1A7A4A",bg:"E6F4EE"},
+      {v:String(pr),l:"En cours",  c:"B86F0A",bg:"FEF3E2"},
+      {v:String(bl),l:"Bloquées",  c:"C0392B",bg:"FDECEA"},
+      {v:String(t), l:"Total",     c:"1A2535",bg:"E2E8F0"}
+    ];
+    var kx=0.25;
+    kpis.forEach(function(k){
+      s2.addShape(pptx.ShapeType.rect,{x:kx,y:0.95,w:1.7,h:1.05,fill:{color:k.bg},line:{color:k.bg}});
+      s2.addText(k.v,{x:kx,y:1.0,w:1.7,h:0.55,fontSize:26,bold:true,color:k.c,align:"center",fontFace:"Calibri"});
+      s2.addText(k.l,{x:kx,y:1.55,w:1.7,h:0.35,fontSize:11,color:k.c,align:"center",fontFace:"Calibri"});
+      kx+=1.8;
+    });
+
+    if(p1.length){
+      s2.addShape(pptx.ShapeType.rect,{x:0.25,y:2.15,w:9.2,h:0.5,fill:{color:"FEE2E2"},line:{color:"C0392B",pt:1}});
+      s2.addText("⚠  "+p1.length+" action(s) P1 urgente(s) non terminée(s)",{x:0.25,y:2.2,w:9.2,h:0.4,fontSize:12,bold:true,color:"C0392B",align:"center",fontFace:"Calibri"});
+    }
+
+    // Barres par ville
+    var by2 = p1.length ? 2.85 : 2.35;
+    villes.forEach(function(v){
+      var acts=byVille[v], vd=acts.filter(function(p){return p.statut==="done";}).length;
+      var vpc=Math.round(vd/acts.length*100);
+      s2.addText(v,{x:0.25,y:by2,w:1.9,h:0.26,fontSize:11,bold:false,color:"1A2535",fontFace:"Calibri"});
+      s2.addShape(pptx.ShapeType.rect,{x:2.2,y:by2+0.05,w:6.2,h:0.16,fill:{color:"D6E2EE"},line:{color:"D6E2EE"}});
+      if(vpc>0) s2.addShape(pptx.ShapeType.rect,{x:2.2,y:by2+0.05,w:Math.max(0.05,6.2*vpc/100),h:0.16,fill:{color:"3B82C4"},line:{color:"3B82C4"}});
+      s2.addText(vpc+"% ("+vd+"/"+acts.length+")",{x:8.5,y:by2,w:1.2,h:0.26,fontSize:9,color:"6B829A",align:"right",fontFace:"Calibri"});
+      by2+=0.3;
+    });
+
+    // ── SLIDES PAR VILLE ───────────────────────────────────────────
+    villes.forEach(function(ville){
+      var acts=byVille[ville];
+      var vd=acts.filter(function(p){return p.statut==="done";}).length;
+      var vpc=Math.round(vd/acts.length*100);
+      var sv=pptx.addSlide();
+      sv.background={fill:"F0F4F8"};
+      sv.addShape(pptx.ShapeType.rect,{x:0,y:0,w:"100%",h:0.75,fill:{color:"1E2E42"},line:{color:"1E2E42"}});
+      sv.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.08,h:0.75,fill:{color:"3B82C4"},line:{color:"3B82C4"}});
+      sv.addText(ville+"  —  "+vpc+"% ("+vd+"/"+acts.length+" actions)",{x:0.15,y:0.15,w:9.5,h:0.45,fontSize:16,bold:true,color:"FFFFFF",fontFace:"Calibri"});
+      var ty=0.85;
+      acts.forEach(function(pa){
+        if(ty>6.8) return;
+        var rowBg = pa.statut==="done" ? "E8F5EE" : "FFFFFF";
+        sv.addShape(pptx.ShapeType.rect,{x:0.18,y:ty,w:9.4,h:0.7,fill:{color:rowBg},line:{color:"D6E2EE",pt:0.5}});
+        // Badge prio
+        sv.addShape(pptx.ShapeType.rect,{x:0.22,y:ty+0.1,w:0.42,h:0.22,fill:{color:PR_B[pa.prio]||"FEF3C7"},line:{color:PR_B[pa.prio]||"FEF3C7"}});
+        sv.addText(PR_L[pa.prio]||"P2",{x:0.22,y:ty+0.1,w:0.42,h:0.22,fontSize:8,bold:true,color:PR_C[pa.prio]||"92400E",align:"center",fontFace:"Calibri"});
+        // Badge marque
+        sv.addShape(pptx.ShapeType.rect,{x:0.68,y:ty+0.1,w:0.9,h:0.22,fill:{color:"EBF3FC"},line:{color:"EBF3FC"}});
+        sv.addText(pa.marque,{x:0.68,y:ty+0.1,w:0.9,h:0.22,fontSize:8,bold:true,color:"2563A8",align:"center",fontFace:"Calibri"});
+        // Action
+        sv.addText(pa.nature,{x:1.62,y:ty+0.05,w:5.2,h:0.28,fontSize:11,bold:true,color:"1A2535",fontFace:"Calibri"});
+        if(pa.resultat) sv.addText("→ "+pa.resultat,{x:1.62,y:ty+0.35,w:5.2,h:0.22,fontSize:9,color:"6B829A",fontFace:"Calibri"});
+        // Statut
+        sv.addShape(pptx.ShapeType.rect,{x:6.88,y:ty+0.1,w:1.1,h:0.22,fill:{color:AV_B[pa.statut]||"F1F5F9"},line:{color:AV_B[pa.statut]||"F1F5F9"}});
+        sv.addText(AV_L[pa.statut]||"À faire",{x:6.88,y:ty+0.1,w:1.1,h:0.22,fontSize:8,bold:true,color:AV_C[pa.statut]||"475569",align:"center",fontFace:"Calibri"});
+        // Délai
+        if(pa.delai) sv.addText("Délai : "+pa.delai,{x:8.02,y:ty+0.1,w:1.5,h:0.22,fontSize:8,color:"6B829A",fontFace:"Calibri"});
+        ty+=0.76;
+      });
+    });
+
+    // ── SLIDE ALERTES P1 ───────────────────────────────────────────
+    if(p1.length){
+      var sp=pptx.addSlide();
+      sp.background={fill:"FFF5F5"};
+      sp.addShape(pptx.ShapeType.rect,{x:0,y:0,w:"100%",h:0.75,fill:{color:"C0392B"},line:{color:"C0392B"}});
+      sp.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.08,h:0.75,fill:{color:"E8610A"},line:{color:"E8610A"}});
+      sp.addText("⚠  Actions urgentes — P1 non terminées",{x:0.15,y:0.15,w:9.5,h:0.45,fontSize:16,bold:true,color:"FFFFFF",fontFace:"Calibri"});
+      var ay=0.85;
+      p1.forEach(function(pa){
+        sp.addShape(pptx.ShapeType.rect,{x:0.18,y:ay,w:9.4,h:0.7,fill:{color:"FDECEA"},line:{color:"F0C0C0",pt:0.5}});
+        sp.addText(pa.ville+" — "+pa.marque+" — "+pa.metier,{x:0.25,y:ay+0.05,w:7,h:0.26,fontSize:12,bold:true,color:"C0392B",fontFace:"Calibri"});
+        sp.addText(pa.nature,{x:0.25,y:ay+0.33,w:7,h:0.26,fontSize:11,color:"1A2535",fontFace:"Calibri"});
+        if(pa.delai) sp.addText("Délai : "+pa.delai,{x:7.5,y:ay+0.22,w:2,h:0.26,fontSize:10,color:"B86F0A",fontFace:"Calibri"});
+        ay+=0.8;
+      });
+    }
+
+    // ── SLIDE PROCHAINES ÉTAPES ────────────────────────────────────
+    var sl=pptx.addSlide();
+    sl.background={fill:"1E2E42"};
+    sl.addShape(pptx.ShapeType.rect,{x:0,y:0,w:"100%",h:0.75,fill:{color:"1E2E42"},line:{color:"3B82C4",pt:2}});
+    sl.addShape(pptx.ShapeType.rect,{x:0,y:0,w:0.08,h:"100%",fill:{color:"3B82C4"},line:{color:"3B82C4"}});
+    sl.addText("Prochaines étapes",{x:0.15,y:0.15,w:9.5,h:0.45,fontSize:18,bold:true,color:"FFFFFF",fontFace:"Calibri"});
+    sl.addText("À compléter lors de la réunion",{x:0.3,y:1.4,w:9,h:0.6,fontSize:22,color:"96A8BC",fontFace:"Calibri"});
+    sl.addText("Sébastien Brancourt — Coordinateur APV PR — Groupe Tressol-Chabrier",{x:0.3,y:6.6,w:9.2,h:0.35,fontSize:10,color:"3A4D63",fontFace:"Calibri"});
+
+    // ── TÉLÉCHARGER ────────────────────────────────────────────────
+    var fname = "PA_APV_PR_"+new Date().toISOString().slice(0,10)+".pptx";
+    pptx.writeFile({fileName:fname}).then(function(){
+      if(btn){ btn.textContent="▶ PowerPoint"; btn.disabled=false; }
+    }).catch(function(e){
+      if(btn){ btn.textContent="▶ PowerPoint"; btn.disabled=false; }
+      alert("Erreur génération : "+e.message);
+    });
+
+  } catch(err) {
+    if(btn){ btn.textContent="▶ PowerPoint"; btn.disabled=false; }
+    alert("Erreur : "+err.message);
+  }
+}
+
+
+// ═══ CR ════════════════════════════════════════════════════════════
+function initCRForm(){
+  document.getElementById("cr-dat").textContent="📅 "+now_long();
+  var sel=document.getElementById("cr-site");
+  sel.innerHTML='<option value="">— Site —</option>';
+  VILLES.forEach(function(v){sel.innerHTML+='<option>'+v+'</option>';});
+  var selm=document.getElementById("cr-mk");
+  selm.innerHTML='<option value="">Toutes marques</option>';
+  MARQUES.forEach(function(m){selm.innerHTML+='<option>'+m+'</option>';});
+  renderCRList();
+}
+function saveCR(){
+  var txt=document.getElementById("cr-ta").value.trim();
+  if(!txt){alert("Le compte rendu est vide.");return;}
+  var cr={
+    id:uid(),date:now_fr(),
+    siteNom:document.getElementById("cr-site").value,
+    marque:document.getElementById("cr-mk").value,
+    objet:document.getElementById("cr-obj").value.trim(),
+    texte:txt
+  };
+  CRS.unshift(cr); saveCR_(); flash(true);
+  push({action:"saveCR",data:cr});
+  document.getElementById("cr-ta").value="";
+  document.getElementById("cr-obj").value="";
+  renderCRList();
+}
+function delCR(id){
+  CRS=CRS.filter(function(x){return x.id!==id;}); saveCR_(); renderCRList();
+}
+function renderCRList(){
+  loadCR();
+  var list=document.getElementById("cr-list");
+  if(!CRS.length){list.innerHTML='<div class="empty">Aucun compte rendu enregistré.</div>';return;}
+  var h='<div class="isec">Comptes rendus ('+CRS.length+')</div>';
+  CRS.forEach(function(cr){
+    h+='<div class="cr-it">'
+      +'<div class="cr-hdr">'
+        +'<span class="cr-date">'+cr.date+'</span>'
+        +(cr.siteNom?'<span class="cr-site">'+esc(cr.siteNom)+'</span>':'')
+        +(cr.marque?'<span class="cr-mk">'+esc(cr.marque)+'</span>':'')
+        +(cr.objet?'<span class="cr-ob">'+esc(cr.objet)+'</span>':'')
+      +'</div>'
+      +'<div class="cr-tx">'+esc(cr.texte)+'</div>'
+      +'<div class="cr-ft">'
+        +'<button class="btn btn-bl" onclick="sendGmail(\''+cr.id+'\')">✉ Envoyer</button>'
+        +'<button class="btn btn-red" onclick="delCR(\''+cr.id+'\')">Supprimer</button>'
+      +'</div>'
+      +'</div>';
+  });
+  list.innerHTML=h;
+}
+function sendCRGmail(){
+  var txt=document.getElementById("cr-ta").value.trim();
+  if(!txt){alert("Rédigez d'abord le compte rendu.");return;}
+  openGm({
+    date:now_fr(),
+    siteNom:document.getElementById("cr-site").value,
+    marque:document.getElementById("cr-mk").value,
+    objet:document.getElementById("cr-obj").value.trim(),
+    texte:txt
+  });
+}
+function sendGmail(id){
+  var cr=CRS.filter(function(x){return x.id===id;})[0]; if(!cr) return; openGm(cr);
+}
+function openGm(cr){
+  var sub=cr.objet||("CR "+cr.date+(cr.siteNom?" — "+cr.siteNom:""));
+  var bod="Compte rendu — "+cr.date+(cr.siteNom?" — "+cr.siteNom:"")+(cr.marque?" ("+cr.marque+")":"")+"\n"+"=".repeat(50)+"\n\n"+cr.texte+"\n\n--\nSébastien Brancourt\nCoordinateur APV PR — Groupe Tressol-Chabrier";
+  // Ouvrir Google Slides dans un nouvel onglet
+  window.open("https://slides.google.com/create","_blank");
+  // Copier le contenu structuré dans le presse-papiers
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(bod).then(function(){
+      setTimeout(function(){
+        alert("Google Slides est ouvert dans un nouvel onglet.\n\n"
+          +"Le contenu structuré ("+nslides+" slides) a été copié dans le presse-papiers.\n\n"
+          +"Dans Google Slides :\n"
+          +"1. Choisissez un thème vide\n"
+          +"2. Dans chaque diapositive, collez le contenu (Ctrl+V)\n"
+          +"   et formatez selon vos préférences.");
+      },400);
+    }).catch(function(){
+      alert("Google Slides est ouvert dans un nouvel onglet.\n\n"
+        +"Utilisez le bouton ⬇ Excel pour récupérer le contenu des slides.");
+    });
+  } else {
+    alert("Google Slides est ouvert.\nUtilisez ⬇ Excel pour le contenu des slides.");
+  }
+}
+
+// ═══ MIC ════════════════════════════════════════════════════════════
+function toggleMic(){if(isRec)stopMic();else startMic();}
+function startMic(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR){alert("Dictée non supportée — utilisez Chrome ou Edge.");return;}
+  recog=new SR(); recog.lang="fr-FR"; recog.continuous=true; recog.interimResults=true;
+  var base=document.getElementById("cr-ta").value;
+  recog.onresult=function(e){
+    var fin="",tmp="";
+    for(var i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)fin+=e.results[i][0].transcript;
+      else tmp+=e.results[i][0].transcript;
+    }
+    document.getElementById("cr-ta").value=base+fin+(tmp?" ["+tmp+"]":"");
+    if(fin)base+=fin;
+  };
+  recog.onerror=function(e){if(e.error!=="aborted")alert("Erreur micro : "+e.error);stopMic();};
+  recog.onend=function(){if(isRec)stopMic();};
+  recog.start(); isRec=true;
+  document.getElementById("mic").className="mic rec";
+  document.getElementById("mic-i").textContent="⏹";
+  document.getElementById("mic-l").textContent=" Arrêter";
+}
+function stopMic(){
+  if(recog){try{recog.stop();}catch(e){}recog=null;}
+  isRec=false;
+  var ta=document.getElementById("cr-ta");
+  ta.value=ta.value.replace(/\s*\[[^\]]*\]/g,"").trim();
+  document.getElementById("mic").className="mic idle";
+  document.getElementById("mic-i").textContent="🎤";
+  document.getElementById("mic-l").textContent=" Dicter";
+}
+
+// ═══ INIT ════════════════════════════════════════════════════════════
+function init(){
+  loadPA(); loadCR();
+  renderAll();
+}
+init();
+</script>
+</body>
+</html>
