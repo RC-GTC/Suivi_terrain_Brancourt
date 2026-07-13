@@ -1218,27 +1218,18 @@ function sendGmail(id){
 }
 function openGm(cr){
   var sub=cr.objet||("CR "+cr.date+(cr.siteNom?" — "+cr.siteNom:""));
-  var bod="Compte rendu — "+cr.date+(cr.siteNom?" — "+cr.siteNom:"")+(cr.marque?" ("+cr.marque+")":"")+"\n"+"=".repeat(50)+"\n\n"+cr.texte+"\n\n--\nSébastien Brancourt\nCoordinateur APV PR — Groupe Tressol-Chabrier";
-  // Ouvrir Google Slides dans un nouvel onglet
-  window.open("https://slides.google.com/create","_blank");
-  // Copier le contenu structuré dans le presse-papiers
-  if(navigator.clipboard && navigator.clipboard.writeText){
-    navigator.clipboard.writeText(bod).then(function(){
-      setTimeout(function(){
-        alert("Google Slides est ouvert dans un nouvel onglet.\n\n"
-          +"Le contenu structuré ("+nslides+" slides) a été copié dans le presse-papiers.\n\n"
-          +"Dans Google Slides :\n"
-          +"1. Choisissez un thème vide\n"
-          +"2. Dans chaque diapositive, collez le contenu (Ctrl+V)\n"
-          +"   et formatez selon vos préférences.");
-      },400);
-    }).catch(function(){
-      alert("Google Slides est ouvert dans un nouvel onglet.\n\n"
-        +"Utilisez le bouton ⬇ Excel pour récupérer le contenu des slides.");
-    });
-  } else {
-    alert("Google Slides est ouvert.\nUtilisez ⬇ Excel pour le contenu des slides.");
-  }
+  var bod="Compte rendu d'intervention\n"
+    +"Date : "+cr.date+"\n"
+    +(cr.siteNom?"Site : "+cr.siteNom+"\n":"")
+    +(cr.marque?"Marque : "+cr.marque+"\n":"")
+    +(cr.objet?"Objet : "+cr.objet+"\n":"")
+    +"\n"+cr.texte
+    +"\n\n—\nSébastien Brancourt\nCoordinateur APV PR — Groupe Tressol-Chabrier";
+  var gUrl="https://mail.google.com/mail/?view=cm&fs=1"
+    +"&to=regis.collin@tressol-chabrier.com"
+    +"&su="+encodeURIComponent(sub)
+    +"&body="+encodeURIComponent(bod);
+  window.open(gUrl,"_blank");
 }
 
 // ═══ MIC ════════════════════════════════════════════════════════════
