@@ -433,7 +433,7 @@ tbody td:last-child{border-right:none}
 
 <script>
 // ═══ CONFIG ════════════════════════════════════════════════════════
-var API   = "https://script.google.com/macros/s/AKfycbzNt5YiDFXrJ1buvqGqlBYBO3jsXj6l5_uf1L5lxzx9htNruhnE0Qr8Qc-NYQXX4HQw2w/exec";
+var API   = "https://script.google.com/macros/s/AKfycbzzFzpVEnaNqUtVWcfEezoRQLkYHyrrtmn-vgXY4avlAyGckfnFF1yVnbYuZjeFYy2chw/exec";
 var SLIDES_API = "https://script.google.com/macros/s/AKfycbz3yUCa53p87c5S6GkmEjzyRReh6dbaaaK1ga0-RRFpHF-qGcLg5cLG29h2kXGh5vBcYA/exec";
 var LS_PA = "kpi_gtc_pa";
 var LS_CR = "kpi_gtc_cr";
@@ -476,8 +476,9 @@ function avObj(v){ return AV.filter(function(x){return x.v===v;})[0]||AV[0]; }
 
 // ═══ REMOTE ════════════════════════════════════════════════════════
 function push(payload){
-  fetch(API,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)})
-    .catch(function(){});
+  try{
+    fetch(API,{method:"POST",mode:"no-cors",headers:{"Content-Type":"application/json"},body:JSON.stringify(payload)});
+  }catch(e){}
 }
 
 // ═══ ONGLETS ═══════════════════════════════════════════════════════
