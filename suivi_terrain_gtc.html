@@ -420,14 +420,23 @@ tbody td:last-child{border-right:none}
       </div>
       <div style="margin-bottom:8px"></div>
       <textarea class="cr-ta" id="cr-ta" placeholder="Rédigez ou dictez votre compte rendu…"></textarea>
+      <div id="cr-photos-preview" class="cr-photos-preview"></div>
       <div class="cr-btns">
         <button class="mic idle" id="mic" onclick="toggleMic()">
           <span id="mic-i">🎤</span><span id="mic-l"> Dicter</span>
         </button>
+        <label class="btn" style="cursor:pointer;background:var(--bg2);color:var(--g1);border:1px solid var(--bd)" title="Ajouter des photos">
+          📷 Photo<input type="file" id="cr-photo-input" accept="image/*" multiple style="display:none" onchange="addPhotos(this)">
+        </label>
         <button class="btn btn-bl" onclick="saveCR()">💾 Enregistrer</button>
         <button class="btn btn-bl" onclick="sendCRGmail()">✉ Envoyer par Gmail</button>
       </div>
       <div class="cr-hint">Dictée vocale disponible sur Chrome / Edge.</div>
+    </div>
+    <!-- Modal photo plein écran -->
+    <div class="photo-modal" id="photo-modal" onclick="closePhotoModal()">
+      <button class="photo-modal-close" onclick="closePhotoModal()">✕</button>
+      <img id="photo-modal-img" src="" alt=""/>
     </div>
     <div class="cr-list" id="cr-list"></div>
   </div>
@@ -1163,6 +1172,57 @@ function initCRForm(){
   MARQUES.forEach(function(m){selm.innerHTML+='<option>'+m+'</option>';});
   renderCRList();
 }
+var CR_PHOTOS = []; // photos en cours de saisie
+
+function addPhotos(input){
+  var files = Array.prototype.slice.call(input.files);
+  var maxPx = 1200; // redimensionner pour ne pas surcharger le Sheet
+  files.forEach(function(file){
+    var reader = new FileReader();
+    reader.onload = function(e){
+      // Redimensionner via canvas
+      var img = new Image();
+      img.onload = function(){
+        var canvas = document.createElement("canvas");
+        var ratio  = Math.min(1, maxPx/Math.max(img.width,img.height));
+        canvas.width  = Math.round(img.width  * ratio);
+        canvas.height = Math.round(img.height * ratio);
+        canvas.getContext("2d").drawImage(img, 0, 0, canvas.width, canvas.height);
+        var b64 = canvas.toDataURL("image/jpeg", 0.75);
+        CR_PHOTOS.push(b64);
+        renderPhotosPreview();
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+  input.value = "";
+}
+
+function renderPhotosPreview(){
+  var div = document.getElementById("cr-photos-preview");
+  if(!div) return;
+  if(!CR_PHOTOS.length){ div.innerHTML=""; return; }
+  var h = "";
+  CR_PHOTOS.forEach(function(b64,i){
+    h += "<div class='cr-photo-thumb'><img src='"+b64+"'/><button class='cr-photo-del' onclick='delPhoto("+i+")'>✕</button></div>";
+  });
+  div.innerHTML = h;
+}
+
+function delPhoto(i){
+  CR_PHOTOS.splice(i,1);
+  renderPhotosPreview();
+}
+
+function openPhotoModal(src){ 
+  document.getElementById("photo-modal-img").src = src;
+  document.getElementById("photo-modal").classList.add("on");
+}
+function closePhotoModal(){
+  document.getElementById("photo-modal").classList.remove("on");
+}
+
 function saveCR(){
   var txt=document.getElementById("cr-ta").value.trim();
   if(!txt){alert("Le compte rendu est vide.");return;}
@@ -1171,12 +1231,15 @@ function saveCR(){
     siteNom:document.getElementById("cr-site").value,
     marque:document.getElementById("cr-mk").value,
     objet:document.getElementById("cr-obj").value.trim(),
-    texte:txt
+    texte:txt,
+    photos:CR_PHOTOS.slice()
   };
   CRS.unshift(cr); saveCR_(); flash(true);
   push({action:"saveCR",data:cr});
   document.getElementById("cr-ta").value="";
   document.getElementById("cr-obj").value="";
+  CR_PHOTOS=[];
+  renderPhotosPreview();
   renderCRList();
 }
 function delCR(id){
@@ -1196,6 +1259,7 @@ function renderCRList(){
         +(cr.objet?'<span class="cr-ob">'+esc(cr.objet)+'</span>':'')
       +'</div>'
       +'<div class="cr-tx">'+esc(cr.texte)+'</div>'
+      +(cr.photos&&cr.photos.length?'<div class="cr-photos-grid">'+cr.photos.map(function(p,pi){return '<img class="cr-photo-view" src="'+p+'" onclick="openPhotoModal(this.src)" title="Agrandir"/>';}).join('')+'</div>':'')
       +'<div class="cr-ft">'
         +'<button class="btn btn-bl" onclick="sendGmail(\''+cr.id+'\')">✉ Envoyer</button>'
         +'<button class="btn btn-red" onclick="delCR(\''+cr.id+'\')">Supprimer</button>'
