@@ -435,7 +435,7 @@ tbody td:last-child{border-right:none}
 
 <script>
 // ═══ CONFIG ════════════════════════════════════════════════════════
-var API   = "https://script.google.com/macros/s/AKfycbzSRlJEg2OA3LKFOptSxw10ULtRdj0r-Vrn2bHs-MdCOxxD1ef_LXPvcOOKcA4KWtaJyA/exec";
+var API   = "https://script.google.com/macros/s/AKfycbytsOr7hEY7qrdx9DNRrCxV_wit6iL2GDhYJgSTf28HUW0HVZbHj_I0nRyvQE15-ZWOmA/exec";
 var SLIDES_API = "https://script.google.com/macros/s/AKfycbz3yUCa53p87c5S6GkmEjzyRReh6dbaaaK1ga0-RRFpHF-qGcLg5cLG29h2kXGh5vBcYA/exec";
 var LS_PA = "kpi_gtc_pa";
 var LS_CR = "kpi_gtc_cr";
@@ -1276,75 +1276,74 @@ function init(){
 }
 
 function syncFromSheet(){
-  var url = API + "?action=getAll&t=" + Date.now();
-  fetch(url, {method:"GET", mode:"cors"})
-    .then(function(r){ return r.json(); })
-    .then(function(data){
-      var changed = false;
+  setSyncStatus("...");
+  // JSONP : seule technique qui lit depuis Apps Script sans CORS
+  var cbName = "cb_" + Date.now();
+  var script  = document.createElement("script");
+  var done    = false;
+  var timer   = setTimeout(function(){
+    if(!done){ done=true; cleanup(); setSyncStatus("⚠ Hors ligne"); }
+  }, 8000);
 
-      // ── Importer les PA ──────────────────────────────────────
-      if(data.pa && data.pa.length > 1){
-        var headers = data.pa[0];
-        var remotePA = [];
-        for(var i=1; i<data.pa.length; i++){
-          var row = data.pa[i];
-          var obj = {};
-          headers.forEach(function(h,j){ obj[h] = row[j] !== undefined ? String(row[j]) : ""; });
-          if(obj.id && obj.id !== "test-001") remotePA.push(obj);
-        }
-        if(remotePA.length > 0){
-          // Fusionner : le Sheet fait autorité
-          var localIds = PAS.map(function(p){return p.id;});
-          remotePA.forEach(function(rpa){
-            var idx = PAS.findIndex(function(p){return p.id===rpa.id;});
-            if(idx >= 0){
-              PAS[idx] = rpa; // mettre à jour
-            } else {
-              PAS.push(rpa); // ajouter les nouvelles
-            }
-          });
-          // Supprimer localement ce qui n'est plus dans le Sheet
-          PAS = PAS.filter(function(p){
-            return remotePA.some(function(r){return r.id===p.id;});
-          });
-          savePA(); changed = true;
-        }
+  window[cbName] = function(data){
+    if(done) return; done=true; cleanup();
+    clearTimeout(timer);
+    var changed = false;
+
+    // ── PA ───────────────────────────────────────────────────
+    if(data.pa && data.pa.length > 1){
+      var headers = data.pa[0];
+      var remotePA = [];
+      for(var i=1; i<data.pa.length; i++){
+        var row = data.pa[i], obj={};
+        headers.forEach(function(h,j){ obj[h]=row[j]!==undefined?String(row[j]):""; });
+        if(obj.id && obj.id!=="test-001") remotePA.push(obj);
       }
-
-      // ── Importer les CR ──────────────────────────────────────
-      if(data.cr && data.cr.length > 1){
-        var hdrCR = data.cr[0];
-        var remoteCR = [];
-        for(var i=1; i<data.cr.length; i++){
-          var row = data.cr[i];
-          var obj = {};
-          hdrCR.forEach(function(h,j){ obj[h] = row[j] !== undefined ? String(row[j]) : ""; });
-          if(obj.id) remoteCR.push(obj);
-        }
-        if(remoteCR.length > 0){
-          var localCRIds = CRS.map(function(c){return c.id;});
-          remoteCR.forEach(function(rcr){
-            var idx = CRS.findIndex(function(c){return c.id===rcr.id;});
-            if(idx >= 0){
-              CRS[idx] = rcr;
-            } else {
-              CRS.push(rcr);
-            }
-          });
-          CRS = CRS.filter(function(c){
-            return remoteCR.some(function(r){return r.id===c.id;});
-          });
-          saveCR_(); changed = true;
-        }
+      if(remotePA.length > 0){
+        remotePA.forEach(function(rpa){
+          var idx=PAS.findIndex(function(p){return p.id===rpa.id;});
+          if(idx>=0){ PAS[idx]=rpa; } else { PAS.push(rpa); }
+        });
+        PAS=PAS.filter(function(p){ return remotePA.some(function(r){return r.id===p.id;}); });
+        savePA(); changed=true;
       }
+    }
 
-      if(changed) renderAll();
-      document.getElementById("sync-status").textContent = "✓ Synchronisé " + now_fr();
-    })
-    .catch(function(err){
-      document.getElementById("sync-status").textContent = "⚠ Hors ligne";
-      console.log("Sync:", err);
-    });
+    // ── CR ───────────────────────────────────────────────────
+    if(data.cr && data.cr.length > 1){
+      var hdr=data.cr[0], remoteCR=[];
+      for(var i=1; i<data.cr.length; i++){
+        var row=data.cr[i], obj={};
+        hdr.forEach(function(h,j){ obj[h]=row[j]!==undefined?String(row[j]):""; });
+        if(obj.id) remoteCR.push(obj);
+      }
+      if(remoteCR.length > 0){
+        remoteCR.forEach(function(rcr){
+          var idx=CRS.findIndex(function(c){return c.id===rcr.id;});
+          if(idx>=0){ CRS[idx]=rcr; } else { CRS.push(rcr); }
+        });
+        CRS=CRS.filter(function(c){ return remoteCR.some(function(r){return r.id===c.id;}); });
+        saveCR_(); changed=true;
+      }
+    }
+
+    if(changed) renderAll();
+    setSyncStatus("✓ " + now_fr());
+  };
+
+  function cleanup(){
+    delete window[cbName];
+    if(script.parentNode) script.parentNode.removeChild(script);
+  }
+
+  script.onerror = function(){ if(!done){done=true;cleanup();clearTimeout(timer);setSyncStatus("⚠ Hors ligne");} };
+  script.src = API + "?action=getAll&callback=" + cbName + "&t=" + Date.now();
+  document.head.appendChild(script);
+}
+
+function setSyncStatus(msg){
+  var el = document.getElementById("sync-status");
+  if(el) el.textContent = msg;
 }
 init();
 </script>
