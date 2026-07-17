@@ -1313,16 +1313,29 @@ function syncFromSheet(){
     if(data.cr && data.cr.length > 1){
       var hdr=data.cr[0], remoteCR=[];
       for(var i=1; i<data.cr.length; i++){
-        var row=data.cr[i], obj={};
-        hdr.forEach(function(h,j){ obj[h]=row[j]!==undefined?String(row[j]):""; });
-        if(obj.id) remoteCR.push(obj);
+        var row=data.cr[i];
+        if(!row || !row[0]) continue;
+        var obj={};
+        hdr.forEach(function(h,j){
+          var v = row[j];
+          obj[h] = (v !== undefined && v !== null) ? String(v) : "";
+        });
+        if(obj.id && obj.id.length > 3) remoteCR.push(obj);
       }
       if(remoteCR.length > 0){
+        // Merge : le Sheet fait autorité
+        var allIds = remoteCR.map(function(r){return r.id;});
         remoteCR.forEach(function(rcr){
-          var idx=CRS.findIndex(function(c){return c.id===rcr.id;});
-          if(idx>=0){ CRS[idx]=rcr; } else { CRS.push(rcr); }
+          var idx = -1;
+          for(var k=0;k<CRS.length;k++){ if(CRS[k].id===rcr.id){idx=k;break;} }
+          if(idx>=0){ CRS[idx]=rcr; } else { CRS.unshift(rcr); }
         });
-        CRS=CRS.filter(function(c){ return remoteCR.some(function(r){return r.id===c.id;}); });
+        // Garder uniquement les CR présents dans le Sheet
+        CRS = CRS.filter(function(c){
+          return allIds.indexOf(c.id) >= 0;
+        });
+        // Trier par date décroissante
+        CRS.sort(function(a,b){ return b.id > a.id ? 1 : -1; });
         saveCR_(); changed=true;
       }
     }
