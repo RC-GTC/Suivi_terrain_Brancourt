@@ -226,6 +226,8 @@ tbody td:last-child{border-right:none}
     <div class="tb-s">Suivi terrain · Tressol-Chabrier</div>
   </div>
   <div class="tb-r">
+    <span id="sync-status" style="font-size:10px;color:var(--g3);font-family:'JetBrains Mono',monospace;padding:0 6px"></span>
+    <button class="btn" onclick="syncFromSheet()" title="Synchroniser depuis le Sheet" style="font-size:11px;padding:4px 10px">⟳ Sync</button>
     <span class="sp" id="sp"></span>
     <button class="btn btn-wh" onclick="doExport()">⬇ Excel</button>
     <button class="btn btn-wh" onclick="doRapportMail()">✉ PA Gmail</button>
@@ -1269,6 +1271,80 @@ function stopMic(){
 function init(){
   loadPA(); loadCR();
   renderAll();
+  // Charger les données depuis le Sheet (priorité sur localStorage)
+  syncFromSheet();
+}
+
+function syncFromSheet(){
+  var url = API + "?action=getAll&t=" + Date.now();
+  fetch(url, {method:"GET", mode:"cors"})
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var changed = false;
+
+      // ── Importer les PA ──────────────────────────────────────
+      if(data.pa && data.pa.length > 1){
+        var headers = data.pa[0];
+        var remotePA = [];
+        for(var i=1; i<data.pa.length; i++){
+          var row = data.pa[i];
+          var obj = {};
+          headers.forEach(function(h,j){ obj[h] = row[j] !== undefined ? String(row[j]) : ""; });
+          if(obj.id && obj.id !== "test-001") remotePA.push(obj);
+        }
+        if(remotePA.length > 0){
+          // Fusionner : le Sheet fait autorité
+          var localIds = PAS.map(function(p){return p.id;});
+          remotePA.forEach(function(rpa){
+            var idx = PAS.findIndex(function(p){return p.id===rpa.id;});
+            if(idx >= 0){
+              PAS[idx] = rpa; // mettre à jour
+            } else {
+              PAS.push(rpa); // ajouter les nouvelles
+            }
+          });
+          // Supprimer localement ce qui n'est plus dans le Sheet
+          PAS = PAS.filter(function(p){
+            return remotePA.some(function(r){return r.id===p.id;});
+          });
+          savePA(); changed = true;
+        }
+      }
+
+      // ── Importer les CR ──────────────────────────────────────
+      if(data.cr && data.cr.length > 1){
+        var hdrCR = data.cr[0];
+        var remoteCR = [];
+        for(var i=1; i<data.cr.length; i++){
+          var row = data.cr[i];
+          var obj = {};
+          hdrCR.forEach(function(h,j){ obj[h] = row[j] !== undefined ? String(row[j]) : ""; });
+          if(obj.id) remoteCR.push(obj);
+        }
+        if(remoteCR.length > 0){
+          var localCRIds = CRS.map(function(c){return c.id;});
+          remoteCR.forEach(function(rcr){
+            var idx = CRS.findIndex(function(c){return c.id===rcr.id;});
+            if(idx >= 0){
+              CRS[idx] = rcr;
+            } else {
+              CRS.push(rcr);
+            }
+          });
+          CRS = CRS.filter(function(c){
+            return remoteCR.some(function(r){return r.id===c.id;});
+          });
+          saveCR_(); changed = true;
+        }
+      }
+
+      if(changed) renderAll();
+      document.getElementById("sync-status").textContent = "✓ Synchronisé " + now_fr();
+    })
+    .catch(function(err){
+      document.getElementById("sync-status").textContent = "⚠ Hors ligne";
+      console.log("Sync:", err);
+    });
 }
 init();
 </script>
