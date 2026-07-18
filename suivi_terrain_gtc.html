@@ -86,7 +86,7 @@ textarea.fi{resize:vertical;min-height:48px;line-height:1.5}
 .fsel:focus{border-color:var(--bl)}
 .fcnt{font-size:11px;color:var(--g3);align-self:center;margin-left:auto}
 /* TABLEAU SCROLL avec entêtes sticky */
-.tbl-scroll{overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 310px)}
+.tbl-scroll{overflow-x:auto;overflow-y:auto;max-height:calc(100vh - 180px)}
 table{width:100%;border-collapse:collapse;min-width:1100px}
 thead th{
   padding:8px 9px;text-align:left;font-size:10px;font-weight:600;
@@ -474,6 +474,39 @@ function saveCR_() { localStorage.setItem(LS_CR, JSON.stringify(CRS)); }
 // ═══ UTILS ═════════════════════════════════════════════════════════
 function uid()   { return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
 function now_fr(){ return new Date().toLocaleDateString("fr-FR",{day:"2-digit",month:"2-digit",year:"numeric"}); }
+
+function fmtDate(d){
+  // Convertit n'importe quel format en JJ/MM/AA
+  if(!d || !String(d).trim()) return "";
+  var s = String(d).trim();
+  // Deja JJ/MM/AAAA ou JJ/MM/AA
+  if(/^\d{2}\/\d{2}\/\d{2,4}$/.test(s)){
+    var p=s.split("/");
+    return p[0]+"/"+p[1]+"/"+(p[2].length===4?p[2].slice(2):p[2]);
+  }
+  // ISO : 2026-07-13 ou 2026-07-13T22:00:00.000Z
+  if(/^\d{4}-\d{2}-\d{2}/.test(s)){
+    var p=s.slice(0,10).split("-");
+    return p[2]+"/"+p[1]+"/"+p[0].slice(2);
+  }
+  return s;
+}
+
+function isDelaiDepasse(d){
+  if(!d || !String(d).trim()) return false;
+  var s = String(d).trim();
+  var dt;
+  if(/^\d{2}\/\d{2}\/\d{2,4}$/.test(s)){
+    var p=s.split("/");
+    var yr = p[2].length===2?"20"+p[2]:p[2];
+    dt = new Date(yr+"-"+p[1]+"-"+p[0]);
+  } else if(/^\d{4}-\d{2}-\d{2}/.test(s)){
+    dt = new Date(s.slice(0,10));
+  } else { return false; }
+  if(isNaN(dt)) return false;
+  var today = new Date(); today.setHours(0,0,0,0);
+  return dt < today;
+}
 function now_long(){ return new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"}); }
 function esc(s)  { return (s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
 function flash(ok){
@@ -669,16 +702,22 @@ function renderTable(){
     var av=avObj(pa.statut);
     var avOpts=AV.map(function(a){return '<option value="'+a.v+'"'+(pa.statut===a.v?" selected":"")+'>'+a.l+'</option>';}).join("");
     h+='<tr class="'+(pa.statut==="done"?"tr-done":"")+'" id="row-'+pa.id+'">'
-      +'<td class="td-date">'+esc(pa.creeLe)+'</td>'
+      +'<td class="td-date">'+esc(fmtDate(pa.creeLe))+'</td>'
       +'<td style="font-weight:600;white-space:nowrap">'+esc(pa.ville)+'</td>'
       +'<td><span class="badge b-mk">'+esc(pa.marque)+'</span></td>'
       +'<td><span class="badge b-me">'+esc(pa.metier)+'</span></td>'
       +'<td><span class="badge '+PC[pa.prio]+'">'+PL[pa.prio]+'</span></td>'
       +'<td class="td-action">'+esc(pa.nature)+'</td>'
       +'<td class="td-res">'+esc(pa.resultat)+'</td>'
-      +'<td style="white-space:nowrap;font-size:11px">'+esc(pa.delai)+'</td>'
+      +(function(){
+        var d=pa.delai||"";
+        var depasse=isDelaiDepasse(d);
+        var style="white-space:nowrap;font-size:11px;";
+        if(depasse) style+="background:#FDECEA;color:#C0392B;font-weight:600;border-radius:4px;padding:2px 6px;";
+        return '<td style="'+style+'">'+esc(fmtDate(d)||d)+(depasse?" ⚠":"")+'</td>';
+      })()
       +'<td><select class="avsel '+av.cls+'" onchange="updAv(\''+pa.id+'\',this)">'+avOpts+'</select></td>'
-      +'<td class="td-date" id="maj-'+pa.id+'">'+esc(pa.modifLe)+'</td>'
+      +'<td class="td-date" id="maj-'+pa.id+'">'+esc(fmtDate(pa.modifLe))+'</td>'
       +'<td><button class="vbtn '+(pa.valide==="yes"?"v-yes":"v-no")+'" onclick="toggleVal(\''+pa.id+'\')">'+
         (pa.valide==="yes"?"✓ Validé":"✗ Non validé")+'</button></td>'
       +'<td><button class="delbtn" onclick="askDel(\''+pa.id+'\')" title="Supprimer">✕</button></td>'
@@ -749,7 +788,7 @@ function renderMC(){
     h+="</div>";
     h+="<div class='mcc-txt'>"+esc(pa.nature)+"</div>";
     if(pa.resultat) h+="<div class='mcc-res'>"+esc(pa.resultat)+"</div>";
-    if(pa.delai)    h+="<div class='mcc-delai'>Delai : "+esc(pa.delai)+"</div>";
+    if(pa.delai)    h+="<div class='mcc-delai' style='"+(isDelaiDepasse(pa.delai)?"color:#C0392B;font-weight:600":"")+"'>Delai : "+esc(fmtDate(pa.delai)||pa.delai)+"</div>";
     h+="<div class='mcc-ft'>";
     h+="<select class='mcc-sel' data-id='"+pa.id+"' style='background:#"+avb+";color:#"+avc+"' onchange='updAvMC(this.dataset.id,this)'>"+avOpts+"</select>";
     h+="<button class='mcc-vbtn "+valCls+"' data-id='"+pa.id+"' onclick='toggleVal(this.dataset.id)'>"+valTxt+"</button>";
@@ -775,6 +814,17 @@ function updAvMC(id,sel){
 }
 
 
+function sortPA(arr){
+  return arr.slice().sort(function(a,b){
+    function toTs(d){
+      if(!d) return 0;
+      var p=d.split('/');
+      if(p.length===3) return new Date('20'+p[2]+'-'+p[1]+'-'+p[0]).getTime();
+      return new Date(d).getTime()||0;
+    }
+    return toTs(b.creeLe)-toTs(a.creeLe);
+  });
+}
 function renderAll(){ renderDash(); renderFilters(); renderTable(); renderMC(); }
 
 // ═══ INTERACTIONS TABLEAU ═══════════════════════════════════════════
@@ -782,7 +832,7 @@ function updAv(id, sel){
   var pa=PAS.filter(function(x){return x.id===id;})[0]; if(!pa) return;
   pa.statut=sel.value; pa.modifLe=now_fr();
   sel.className="avsel "+avObj(pa.statut).cls;
-  var maj=document.getElementById("maj-"+id); if(maj) maj.textContent=pa.modifLe;
+  var maj=document.getElementById("maj-"+id); if(maj) maj.textContent=fmtDate(pa.modifLe)||pa.modifLe;
   var row=document.getElementById("row-"+id);
   if(row){ if(pa.statut==="done") row.classList.add("tr-done"); else row.classList.remove("tr-done"); }
   savePA(); flash(true);
@@ -1282,10 +1332,30 @@ function renderCRList(){
   var list=document.getElementById("cr-list");
   if(!CRS.length){list.innerHTML='<div class="empty">Aucun compte rendu enregistré.</div>';return;}
   var h='<div class="isec">Comptes rendus ('+CRS.length+')</div>';
-  CRS.forEach(function(cr){
+  // Trier du plus récent au moins récent
+  var sorted = CRS.slice().sort(function(a,b){
+    function toTs(d){
+      if(!d) return 0;
+      if(d.indexOf('T')>=0) return new Date(d).getTime();
+      // JJ/MM/AAAA
+      var p=d.split('/');
+      if(p.length===3) return new Date('20'+p[2]+'-'+p[1]+'-'+p[0]).getTime();
+      return 0;
+    }
+    return toTs(b.date)-toTs(a.date);
+  });
+  sorted.forEach(function(cr){
     h+='<div class="cr-it">'
       +'<div class="cr-hdr">'
-        +'<span class="cr-date">'+cr.date+'</span>'
+        +'<span class="cr-date">'+(function(d){
+          // Convertir ISO (2026-07-16T22...) ou déjà JJ/MM/AAAA
+          if(!d) return '';
+          if(d.indexOf('T')>=0||d.indexOf('-')>=0){
+            var p=d.split('T')[0].split('-');
+            if(p.length===3) return p[2]+'/'+p[1]+'/'+p[0].slice(2);
+          }
+          return d;
+        })(cr.date)+'</span>'
         +(cr.siteNom?'<span class="cr-site">'+esc(cr.siteNom)+'</span>':'')
         +(cr.marque?'<span class="cr-mk">'+esc(cr.marque)+'</span>':'')
         +(cr.objet?'<span class="cr-ob">'+esc(cr.objet)+'</span>':'')
