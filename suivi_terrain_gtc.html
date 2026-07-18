@@ -883,14 +883,14 @@ function doExport(){
   var wb=XLSX.utils.book_new();
   var rows=[["Créé le","Ville","Marque","Métier","Priorité","Action","Résultat attendu","Délai","Avancement","Modifié le","Validé"]];
   PAS.forEach(function(pa){
-    rows.push([pa.creeLe,pa.ville,pa.marque,pa.metier,PL[pa.prio]||"",pa.nature,pa.resultat||"",pa.delai||"",avObj(pa.statut).l,pa.modifLe||"",pa.valide==="yes"?"Validé":"Non validé"]);
+    rows.push([fmtDate(pa.creeLe),pa.ville,pa.marque,pa.metier,PL[pa.prio]||"",pa.nature,pa.resultat||"",fmtDate(pa.delai)||pa.delai||"",avObj(pa.statut).l,fmtDate(pa.modifLe),pa.valide==="yes"?"Validé":"Non validé"]);
   });
   var ws=XLSX.utils.aoa_to_sheet(rows);
   ws["!cols"]=[{wch:11},{wch:16},{wch:11},{wch:18},{wch:7},{wch:38},{wch:28},{wch:13},{wch:13},{wch:11},{wch:11}];
   XLSX.utils.book_append_sheet(wb,ws,"Plans d'action");
   if(CRS.length){
     var cr=[["Date","Site","Marque","Objet","Compte rendu"]];
-    CRS.forEach(function(c){cr.push([c.date,c.siteNom||"",c.marque||"",c.objet||"",c.texte]);});
+    CRS.forEach(function(c){cr.push([fmtDate(c.date)||c.date,c.siteNom||"",c.marque||"",c.objet||"",c.texte]);});
     var ws2=XLSX.utils.aoa_to_sheet(cr);
     ws2["!cols"]=[{wch:11},{wch:16},{wch:11},{wch:22},{wch:60}];
     XLSX.utils.book_append_sheet(wb,ws2,"Comptes rendus");
@@ -955,16 +955,16 @@ function doRapportMail(){
     var rowBg=pa.statut==="done"?"#F0FAF4":"#ffffff";
     var tdS="padding:6px 8px;border-bottom:1px solid #E2E8F0;";
     rows+="<tr style='background:"+rowBg+"'>";
-    rows+="<td style='"+tdS+"font-size:10px;color:#64748B;white-space:nowrap'>"+esc(pa.creeLe)+"</td>";
+    rows+="<td style='"+tdS+"font-size:10px;color:#64748B;white-space:nowrap'>"+esc(fmtDate(pa.creeLe))+"</td>";
     rows+="<td style='"+tdS+"font-size:12px;font-weight:600;white-space:nowrap'>"+esc(pa.ville)+"</td>";
     rows+="<td style='"+tdS+"'><span style='background:#EBF3FC;color:#2563A8;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px'>"+esc(pa.marque)+"</span></td>";
     rows+="<td style='"+tdS+"'><span style='background:#EEF2FF;color:#3730A3;font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px'>"+esc(pa.metier)+"</span></td>";
     rows+="<td style='"+tdS+"'><span style='background:"+(prioBg[pa.prio]||"#FEF3C7")+";color:"+(prioColor[pa.prio]||"#92400E")+";font-size:10px;font-weight:700;padding:2px 6px;border-radius:3px'>"+(PL[pa.prio]||"P2")+"</span></td>";
     rows+="<td style='"+tdS+"font-size:11px'>"+esc(pa.nature)+"</td>";
     rows+="<td style='"+tdS+"font-size:10px;color:#64748B'>"+esc(pa.resultat)+"</td>";
-    rows+="<td style='"+tdS+"font-size:11px;white-space:nowrap'>"+esc(pa.delai)+"</td>";
+    rows+="<td style='"+tdS+"font-size:11px;white-space:nowrap'>"+esc(fmtDate(pa.delai)||pa.delai)+"</td>";
     rows+="<td style='"+tdS+"'><span style='background:"+(avBg[pa.statut]||"#F1F5F9")+";color:"+(avColor[pa.statut]||"#475569")+";font-size:11px;font-weight:600;padding:2px 7px;border-radius:3px'>"+av.l+"</span></td>";
-    rows+="<td style='"+tdS+"font-size:10px;color:#64748B;white-space:nowrap'>"+esc(pa.modifLe)+"</td>";
+    rows+="<td style='"+tdS+"font-size:10px;color:#64748B;white-space:nowrap'>"+esc(fmtDate(pa.modifLe))+"</td>";
     rows+="<td style='"+tdS+"font-size:11px;font-weight:700;color:"+(pa.valide==="yes"?"#1A7A4A":"#C0392B")+"'>"+(pa.valide==="yes"?"&#10003; Validé":"&#10007; Non validé")+"</td>";
     rows+="</tr>";
   });
@@ -974,7 +974,7 @@ function doRapportMail(){
   if(p1.length){
     var prows="";
     p1.forEach(function(pa){
-      prows+="<tr><td style='padding:5px 8px;font-weight:600'>"+esc(pa.ville)+"</td><td style='padding:5px 8px'>"+esc(pa.marque)+"</td><td style='padding:5px 8px'>"+esc(pa.nature)+"</td><td style='padding:5px 8px'>"+esc(pa.delai)+"</td></tr>";
+      prows+="<tr><td style='padding:5px 8px;font-weight:600'>"+esc(pa.ville)+"</td><td style='padding:5px 8px'>"+esc(pa.marque)+"</td><td style='padding:5px 8px'>"+esc(pa.nature)+"</td><td style='padding:5px 8px'>"+esc(fmtDate(pa.delai)||pa.delai)+"</td></tr>";
     });
     alertBlock="<div style='background:#FEE2E2;border-left:4px solid #C0392B;padding:12px 16px;margin:16px 0;border-radius:4px'>"
       +"<strong style='color:#991B1B;font-size:13px'>&#9888; "+p1.length+" action(s) urgente(s) P1 non termin&#233;e(s)</strong>"
