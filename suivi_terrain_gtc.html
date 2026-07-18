@@ -628,17 +628,26 @@ function renderDash(){
   h += "</span>";
   h += "</div>";
   h += "<div class='syn-kpis'>";
+  // Délais dépassés
+  var depasse = PAS.filter(function(p){return p.statut!=="done" && isDelaiDepasse(p.delai);}).length;
+
   var kpis = [
-    {n:String(done),    l:"Terminées",  c:"#1A7A4A", bg:"rgba(26,122,74,.2)"},
-    {n:String(prog),    l:"En cours",   c:"#B86F0A", bg:"rgba(184,111,10,.2)"},
-    {n:String(blocked), l:"Bloquées",   c:"#C0392B", bg:"rgba(192,57,43,.2)"},
-    {n:String(todo),    l:"À faire",    c:"#96A8BC", bg:"rgba(150,168,188,.15)"},
-    {n:pct+"%",         l:"Avancement", c:"#7EC8F0", bg:"rgba(59,130,196,.2)"}
+    {n:String(todo),    l:"À faire",    c:"#96A8BC", bg:"rgba(150,168,188,.12)",
+     sub: todo===0?"":""},
+    {n:String(prog),    l:"En cours",   c:"#B86F0A", bg:"rgba(184,111,10,.15)",
+     sub: ""},
+    {n:String(blocked), l:"Bloquées",   c:"#C0392B", bg:"rgba(192,57,43,.15)",
+     sub: ""},
+    {n:String(done),    l:"Terminées",  c:"#1A7A4A", bg:"rgba(26,122,74,.15)",
+     sub: total>0?Math.round(done/total*100)+"%":""},
+    {n:String(depasse), l:"Délais dép.", c:depasse>0?"#C0392B":"#96A8BC",
+     bg:depasse>0?"rgba(192,57,43,.18)":"rgba(150,168,188,.08)", sub:""}
   ];
   kpis.forEach(function(k){
     h += "<div class='syn-kpi' style='background:"+k.bg+"'>";
     h += "<div class='syn-kpi-n' style='color:"+k.c+"'>"+k.n+"</div>";
     h += "<div class='syn-kpi-l'>"+k.l+"</div>";
+    if(k.sub) h += "<div style='font-size:10px;color:"+k.c+";opacity:.8;margin-top:2px'>"+k.sub+"</div>";
     h += "</div>";
   });
   h += "</div>";
